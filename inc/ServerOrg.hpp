@@ -16,6 +16,8 @@
 #include <signal.h>
 #include <ctime>
 #include <cstdlib>
+#include "HTTPRequest.hpp"
+#include "HTTPResponse.hpp"
 
 #define PORT 		8080 // Default port, can be changed
 #define MAX_CLIENTS 10 // Maximum number of clients 
@@ -26,6 +28,9 @@ private:
     struct sockaddr_in	_serverAddr;
     int					_port;
     std::vector<int>	_clientSockets;
+	int					epoll_fd;
+	epoll_event ev;
+	void closeClientConnection(int clientSocket);
 	void createSocket();
 	void bindEListen();
 public:

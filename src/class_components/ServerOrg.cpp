@@ -46,12 +46,11 @@ void ServerOrg::bindEListen() {
 void ServerOrg::startServer() {
 	createSocket();
 	bindEListen();
-    int epoll_fd = epoll_create1(0);
+    epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
 		close(_socketFD);
         throw std::runtime_error("Failed to create epoll");
     }
-    epoll_event ev;
     ev.events = EPOLLIN;
     ev.data.fd = _socketFD;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, _socketFD, &ev) == -1) {
@@ -79,8 +78,32 @@ void ServerOrg::startServer() {
 					std::cerr << "Failed to add client socket to epoll." << std::endl;
                     close(clientSocket);
                 }
-            } else {
-				// Handle client requests here
+            }
+			else
+			{
+				std::vector<int>::iterator it;
+				for (it = _clientSockets.begin(); it != _clientSockets.end(); ++it)
+				{
+					if(events[i].data.fd == *it)
+						break;
+				}
+				char buffer[1024];
+				int bytesRecv = recv(*it, buffer, sizeof(buffer) - 1, 0);
+				if (bytesRecv <= 0){
+					closeClientConnection(*it);
+					return;
+				}
+				std::string request(buffer, bytesRecv);
+				HttpRequest req;
+				ParseStatus status = req.ParseRequestChunk(request);
+				if (status == Parse_Success)
+				{
+					HTTPResponse res;
+					std::string response = res.GenerateResponse(req);
+					send(*it, response.c_str(), response.size(), 0);
+					// maybe close and remove client
+				}
+
             }
 		}
 	}
@@ -88,7 +111,13 @@ void ServerOrg::startServer() {
     stopServer();
 }
 
-
+void ServerOrg::closeClientConnection(int clientSocket)
+{
+	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, clientSocket, &ev);
+	// remove from client vec
+	close(clientSocket);
+	std::cout << "Client " << clientSocket << " disconnected" << std::endl;
+}
 
 void set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);

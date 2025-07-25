@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 18:31:09 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 18:38:14 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 18:39:52 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,43 @@ void testDELETEUploadedFile() {
 		std::cout << "✘ Failed\n";
 }
 
+void testUnsupportedMethod() {
+	HttpRequest req("PUT", "/something", "HTTP/1.1", "");
+	HTTPResponse res;
+	std::string response = res.GenerateResponse(req);
+
+	std::cout << "[PUT unsupported] ";
+	if (response.find("405 Method Not Allowed") != std::string::npos)
+		std::cout << "✔ Passed\n";
+	else
+		std::cout << "✘ Failed\n";
+}
+
+void testEmptyPOSTBody() {
+	HttpRequest req("POST", "/uploads/test_empty.txt", "HTTP/1.1", "");
+	HTTPResponse res;
+	std::string response = res.GenerateResponse(req);
+
+	std::cout << "[POST empty body] ";
+	if (response.find("400 Bad Request") != std::string::npos)
+		std::cout << "✔ Passed\n";
+	else
+		std::cout << "✘ Failed\n";
+}
+
+void testDeleteMissingFile() {
+	HttpRequest req("DELETE", "/uploads/missing.txt", "HTTP/1.1", "");
+	HTTPResponse res;
+	std::string response = res.GenerateResponse(req);
+
+	std::cout << "[DELETE missing] ";
+	if (response.find("404 Not Found") != std::string::npos)
+		std::cout << "✔ Passed\n";
+	else
+		std::cout << "✘ Failed\n";
+}
+
+
 int main() {
 	std::cout << "=== HTTPResponse Tests ===\n";
 
@@ -94,6 +131,11 @@ int main() {
 	testPOSTUpload();
 	testDELETEUploadedFile();
 
+	testUnsupportedMethod();
+	testEmptyPOSTBody();
+	testDeleteMissingFile();
+
 	std::cout << "==========================\n";
 	return 0;
 }
+

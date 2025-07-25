@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 23:58:52 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 05:25:45 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 05:36:55 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,34 @@ enum ParseState
 	PARSE_DONE,
 	PARSE_ERROR
 };
+
+
+// === HttpRequest Integration Notes ===
+//
+// Usage by Member C:
+// 1. Feed raw or chunked request using `ParseRequestChunk`.
+// 2. Once `isComplete()` is true:
+//      - Use `GetMethod`, `GetRequestURI`, `GetHeaders`, etc.
+//      - You can safely build a response.
+// 3. If `hasError()` returns true, use `GetErrorMessage()`.
+//
+// Supported methods: GET, POST, DELETE
+// Body is parsed only for POST (based on Content-Length)
+/*
+HttpRequest req;
+
+while (!req.isComplete() && !req.hasError()) {
+    int bytes = recv(fd, buffer, sizeof(buffer), 0);
+    if (bytes <= 0) break;
+
+    ParseStatus status = req.ParseRequestChunk(std::string(buffer, bytes));
+
+    if (status == Parse_BadRequest || status == Parse_NotImplemented) {
+        // Generate 400/501 error response
+    }
+}
+
+*/
 
 // Class for storing parsed information from HTTP Requests
 class HttpRequest

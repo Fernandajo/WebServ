@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 23:58:52 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 05:02:35 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 05:25:45 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,7 @@ class HttpRequest
 		ParseStatus ParseHeaders(const std::string& headers);
 		ParseStatus ParseBody(const std::string& body);
 
+		ParseStatus ParseRawRequest(const std::string& raw);
 		ParseStatus ParseRequestChunk(const std::string& chunk);
 
 		std::string generateSimpleResponse() const;

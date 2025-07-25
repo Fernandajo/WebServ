@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:08:55 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 05:02:42 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 05:26:52 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,21 @@
 #include "../../inc/helpers/HTTPRequestHelper.hpp"
 
 #include <iostream>
+
+// Parses the raw HTTP request in one go
+ParseStatus HttpRequest::ParseRawRequest(const std::string& raw)
+{
+	ParseStatus status;
+	status = ParseRequestChunk(raw);
+	if (status != Parse_Success)
+		return (status);
+	if (!isComplete()) {
+		errorMessage = "Incomplete HTTP request.";
+		state = PARSE_ERROR;
+		return (Parse_BadRequest);
+	}
+	return (Parse_Success);
+}
 
 // Parses incoming chunks of an HTTP request progressively by chunks tracking the current state
 // Accumulates data in buffer and parses once enough is available

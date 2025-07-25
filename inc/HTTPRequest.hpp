@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 23:58:52 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 05:36:55 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 18:34:45 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,6 +108,9 @@ class HttpRequest
 	
 		//default constructor
 		HttpRequest();
+
+		//total input constructor
+		HttpRequest(const std::string& method, const std::string& requestURI, const std::string& version, const std::string& body);
 
 		//member function
 		bool isComplete() const;

@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:08:55 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 16:13:44 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 18:35:13 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -320,6 +320,10 @@ std::string HttpRequest::generateSimpleResponse() const {
 
 // Default constructor
 HttpRequest::HttpRequest() : state(PARSE_REQUEST_LINE) {}
+
+// Constructor with parameters to initialize all components
+HttpRequest::HttpRequest(const std::string& method, const std::string& requestURI, const std::string& version, const std::string& body)
+	: method(method), requestURI(requestURI), version(version), body(body), state(PARSE_DONE) {}
 
 // Getters
 std::string HttpRequest::GetMethod() const { return method; }

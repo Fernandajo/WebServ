@@ -6,14 +6,12 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:08:55 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 05:26:52 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 16:13:44 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPRequest.hpp"
 #include "../../inc/helpers/HTTPRequestHelper.hpp"
-
-#include <iostream>
 
 // Parses the raw HTTP request in one go
 ParseStatus HttpRequest::ParseRawRequest(const std::string& raw)

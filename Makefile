@@ -34,11 +34,14 @@ MAIN_SRCS := \
 
 MAIN_OBJS := $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(MAIN_SRCS))
 
-# === Test Executables ===
-TESTS        := testHTTP
-TESTHTTP_SRC := $(TEST_DIR)/HTTP_Parser_test.cpp
-TESTHTTP_OBJ := $(OBJ_DIR)/$(TESTHTTP_SRC:.cpp=.o)
-TESTHTTP_BIN := testHTTP
+# === Test Sources and Targets ===
+TEST_PARSER_SRC := $(TEST_DIR)/HTTP_Parser_test.cpp
+TEST_PARSER_OBJ := $(OBJ_DIR)/$(TEST_PARSER_SRC:.cpp=.o)
+TEST_PARSER_BIN := test_parser
+
+TEST_GET_SRC := $(TEST_DIR)/HTTP_GET_test.cpp
+TEST_GET_OBJ := $(OBJ_DIR)/$(TEST_GET_SRC:.cpp=.o)
+TEST_GET_BIN := test_get
 
 # === Include Headers ===
 INCLUDES := -I$(INC_DIR)
@@ -56,27 +59,31 @@ $(TARGET): $(MAIN_OBJS) | $(OBJ_DIR)
 	@echo "$(MAGENTA)Linked successfully$(RESET) $(CHECK_MARK)"
 	@echo "$(GREEN)Main binary built!$(RESET) $(ROCKET)"
 
-# === Object Compilation Rules (recursive path-safe) ===
+# === Object Compilation Rule (recursive safe) ===
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	@echo "$(CYAN)Compiling $<$(RESET)"
 	@$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-# Create object subdirectory automatically
-$(OBJ_DIR)/%:
-	@mkdir -p $(dir $@)
-
 # === Create top-level obj directory ===
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
-# === Test Builds ===
-test: $(TESTHTTP_BIN)
+# === Tests ===
+test_parser: $(TEST_PARSER_BIN)
+test_get:    $(TEST_GET_BIN)
 
-$(TESTHTTP_BIN): $(TESTHTTP_OBJ) $(filter-out $(OBJ_DIR)/$(SRC_DIR)/main.o, $(MAIN_OBJS)) | $(OBJ_DIR)
-	@echo "$(MAGENTA)Linking test binary: $@$(RESET)"
+# Build test_parser binary
+$(TEST_PARSER_BIN): $(TEST_PARSER_OBJ) $(filter-out $(OBJ_DIR)/$(SRC_DIR)/main.o, $(MAIN_OBJS)) | $(OBJ_DIR)
+	@echo "$(MAGENTA)Linking test_parser binary...$(RESET)"
 	@$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@
-	@echo "$(GREEN)Test binary $@ built!$(RESET) $(CHECK_MARK)"
+	@echo "$(GREEN)test_parser built!$(RESET) $(CHECK_MARK)"
+
+# Build test_get binary
+$(TEST_GET_BIN): $(TEST_GET_OBJ) $(filter-out $(OBJ_DIR)/$(SRC_DIR)/main.o, $(MAIN_OBJS)) | $(OBJ_DIR)
+	@echo "$(MAGENTA)Linking test_get binary...$(RESET)"
+	@$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@
+	@echo "$(GREEN)test_get built!$(RESET) $(CHECK_MARK)"
 
 # === Cleanup ===
 clean:
@@ -84,9 +91,9 @@ clean:
 	@echo "$(MAGENTA)Object files removed!$(RESET)"
 
 fclean: clean
-	@rm -f $(TARGET) $(TESTS)
+	@rm -f $(TARGET) $(TEST_PARSER_BIN) $(TEST_GET_BIN)
 	@echo "$(MAGENTA)Binaries removed!$(RESET)"
 
 re: fclean all
 
-.PHONY: all clean fclean re test
+.PHONY: all clean fclean re test_parser test_get

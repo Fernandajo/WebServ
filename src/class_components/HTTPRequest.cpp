@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:08:55 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 04:58:35 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 05:02:42 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -290,6 +290,20 @@ ParseStatus HttpRequest::ValidateContentLength()
 
 	return (Parse_Success);
 }
+
+
+// Generates a simple HTTP response with the given body
+std::string HttpRequest::generateSimpleResponse() const {
+	if (method == "GET" && !requestURI.empty()) {
+		return "HTTP/1.1 200 OK\r\n"
+		       "Content-Type: text/plain\r\n"
+		       "Content-Length: 13\r\n"
+		       "\r\n"
+		       "Hello, world";
+	}
+	return "";
+}
+
 
 // Default constructor
 HttpRequest::HttpRequest() : state(PARSE_REQUEST_LINE) {}

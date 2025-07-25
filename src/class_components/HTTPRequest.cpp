@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:08:55 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 03:35:03 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 04:58:35 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,55 +15,103 @@
 
 #include <iostream>
 
-
-// Parse request function, which takes the raw request and populates
-// private variables with necessary information.
-// return adequate parsing status
-ParseStatus HttpRequest::ParseRequest(const std::string& raw)
+// Parses incoming chunks of an HTTP request progressively by chunks tracking the current state
+// Accumulates data in buffer and parses once enough is available
+ParseStatus HttpRequest::ParseRequestChunk(const std::string& chunk)
 {
-	size_t eol = raw.find_first_of(RequestEOL);
-	if (eol == std::string::npos)
-	{
-		errorMessage = "Malformed request: no end of line found";
-		return (Parse_BadRequest);
-	}
-	//finds the request line, which is the first line of the request
-	std::string requestLine = raw.substr(0, eol);
-	
-	// attempts to parse the request line
-	ParseStatus status = ParseRequestLine(requestLine);
-	if (status != Parse_Success)
-		return (status);
+	// Append the new chunk to the buffer
+	buffer += chunk;
 
-	// finds the beggining of headers
-	size_t headersStart = raw.find_first_of(RequestEOL) + 2;
-	size_t headersEnd = raw.find(HeaderEOL);
-	
-	// checks if headers are present
-	if (headersEnd == std::string::npos)
+	if (buffer.empty())
 	{
-		errorMessage = "Malformed request: headers not terminated correctly";
+		errorMessage = "Empty request chunk received";
 		return (Parse_BadRequest);
 	}
 	
-	// extracts the headers from the raw request
-	std::string headersRaw = raw.substr(headersStart, headersEnd - headersStart);
-	
-	// attempts to parse the headers
-	status = ParseHeaders(headersRaw);
-	if (status != Parse_Success)
-		return (status);
+	// If we are in the request line state, we need to parse the request line first
+	if (state == PARSE_REQUEST_LINE) {
+		size_t eol = buffer.find("\r\n");
+		if (eol == std::string::npos)
+		{
+			errorMessage = "Request line is incomplete";
+			return (Parse_Incomplete);
+		}
 
-	// extracts the body if present and the method is POST
-	if (GetMethod() == "POST" || GetMethod() == "PUT")
-	{
-		size_t bodyStart = headersEnd + 4; // 4 is the length of HeaderEOL
-		std::string bodyRaw = raw.substr(bodyStart);
-		status = ParseBody(bodyRaw);
-		if (status != Parse_Success)
+		// Extract the request line from the buffer
+		std::string requestLine = buffer.substr(0, eol);
+		ParseStatus status = ParseRequestLine(requestLine);
+		if (status != Parse_Success) {
+			state = PARSE_ERROR;
 			return (status);
+		}
+
+		// Remove the request line from the buffer
+		buffer.erase(0, eol + 2);
+		state = PARSE_HEADERS;
 	}
-	return (Parse_Success);
+
+	// If we are in the headers state, we need to parse the headers
+	if (state == PARSE_HEADERS) {
+		size_t headerEnd = buffer.find("\r\n\r\n");
+		if (headerEnd == std::string::npos)
+		{
+			errorMessage = "Headers are incomplete";
+			return (Parse_Incomplete);
+		}
+
+		// Extract the headers from the buffer
+		std::string headersRaw = buffer.substr(0, headerEnd);
+		ParseStatus status = ParseHeaders(headersRaw);
+		if (status != Parse_Success) {
+			state = PARSE_ERROR;
+			return (status);
+		}
+		// Remove the headers from the buffer
+		buffer.erase(0, headerEnd + 4);
+
+		// If there is no body, we are done
+		if (method == "POST") {
+			state = PARSE_BODY;
+		} else {
+			state = PARSE_DONE;
+			return (Parse_Success);
+		}
+	}
+
+	// If we are in the body state, we need to parse the body
+	if (state == PARSE_BODY) {
+		// Validate Content-Length value even if body isn't fully received
+		ParseStatus status = ValidateContentLength();
+		if (status != Parse_Success) {
+			state = PARSE_ERROR;
+			return (status);
+		}
+
+		// If the buffer is empty, we are incomplete
+		int contentLength = std::atoi(headers["content-length"].c_str());
+		if ((int)buffer.size() < contentLength)
+		{
+			errorMessage = "Body is incomplete";
+			return (Parse_Incomplete);
+		}
+
+		// Body is fully available, now extract it
+		status = ParseBody(buffer.substr(0, contentLength));
+		if (status != Parse_Success) {
+			state = PARSE_ERROR;
+			return (status);
+		}
+
+		state = PARSE_DONE;
+		return (Parse_Success);
+	}
+
+	if (state == PARSE_DONE)
+		return (Parse_Success);
+	if (state == PARSE_ERROR)
+		return (Parse_BadRequest);
+
+	return (Parse_Incomplete);
 }
 
 // Parses the request line into method, URI, and version
@@ -165,6 +213,7 @@ ParseStatus HttpRequest::ParseHeaders(const std::string& headersRaw)
 		headersParsed[key] = value;
 		headerLine = HTTPRequestHelper::getHeaderLine(headersRaw, ++headerIndex);
 	}
+
 	SetHeaders(headersParsed);
 	return (Parse_Success);
 }
@@ -184,13 +233,7 @@ ParseStatus HttpRequest::ParseBody(const std::string& body)
 		return (Parse_BadRequest);
 	}
 	
-	//checks if the content size is not 0 or negative
 	int contentLength = std::atoi(it->second.c_str());
-	if (contentLength < 1)
-	{
-		errorMessage = "Invalid Content-Length: " + it->second;
-		return (Parse_BadRequest);
-	}
 
 	// checks if content length does not exceed 1mb
 	const int maxContentLength = 1 * 1024 * 1024;
@@ -200,6 +243,13 @@ ParseStatus HttpRequest::ParseBody(const std::string& body)
 		return (Parse_BadRequest);
 	}
 	
+	//checks if the content size is not 0 or negative
+	if (contentLength < 1)
+	{
+		errorMessage = "Invalid Content-Length: " + it->second;
+		return (Parse_BadRequest);
+	}
+
 	// checks if the content length does not exceed the body
 	if ((int)body.length() < contentLength)
 	{
@@ -211,8 +261,38 @@ ParseStatus HttpRequest::ParseBody(const std::string& body)
 	return (Parse_Success);
 }
 
+// Validates the Content-Length header and checks if it exceeds the limit
+ParseStatus HttpRequest::ValidateContentLength()
+{
+	std::map<std::string, std::string>::const_iterator it = headers.find("content-length");
+	// If Content-Length header is missing, return error
+	if (it == headers.end())
+	{
+		errorMessage = "Missing Content-Length for body";
+		return (Parse_BadRequest);
+	}
+
+	int contentLength = std::atoi(it->second.c_str());
+	// If Content-Length is not a valid number or is less than 1, return error
+	if (contentLength <= 0)
+	{
+		errorMessage = "Invalid Content-Length: " + it->second;
+		return (Parse_BadRequest);
+	}
+
+	const int maxContentLength = 1 * 1024 * 1024;
+	// If Content-Length exceeds the maximum allowed size, return error
+	if (contentLength > maxContentLength)
+	{
+		errorMessage = "Payload too large: " + it->second + " bytes exceeds 1MB limit";
+		return (Parse_BadRequest);
+	}
+
+	return (Parse_Success);
+}
+
 // Default constructor
-HttpRequest::HttpRequest() {}
+HttpRequest::HttpRequest() : state(PARSE_REQUEST_LINE) {}
 
 // Getters
 std::string HttpRequest::GetMethod() const { return method; }
@@ -227,6 +307,8 @@ std::string HttpRequest::GetBody() const { return body; }
 
 std::string HttpRequest::GetErrorMessage() const { return errorMessage; }
 
+ParseState  HttpRequest::getState() const { return state; }
+
 // Setters
 void HttpRequest::SetMethod(const std::string& method) { this->method = method; }
 
@@ -239,3 +321,12 @@ void HttpRequest::SetHeaders(const std::map<std::string, std::string>& headers) 
 void HttpRequest::SetBody(const std::string& body) { this->body = body; }
 
 void HttpRequest::SetErrorMessage(const std::string& errorMessage) { this->errorMessage = errorMessage; }
+
+// Helper Functions
+bool HttpRequest::isComplete() const {
+    return state == PARSE_DONE;
+}
+
+bool HttpRequest::hasError() const {
+    return state == PARSE_ERROR;
+}

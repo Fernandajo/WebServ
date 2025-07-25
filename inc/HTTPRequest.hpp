@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 23:58:52 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 03:21:44 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 04:37:55 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,12 +21,24 @@
 #define RequestEOL "\r\n"
 #define HeaderEOL  "\r\n\r\n"
 
+// Return values for HTTP parsing
 enum ParseStatus
 {
 	Parse_Success,
+	Parse_Incomplete,
 	Parse_BadRequest,
 	Parse_NotImplemented,
 	Parse_VersionNotSupported
+};
+
+// State Tracking
+enum ParseState
+{
+	PARSE_REQUEST_LINE,
+	PARSE_HEADERS,
+	PARSE_BODY,
+	PARSE_DONE,
+	PARSE_ERROR
 };
 
 // Class for storing parsed information from HTTP Requests
@@ -41,6 +53,8 @@ class HttpRequest
 		std::string body;
 
 		std::string errorMessage;
+		ParseState state;
+		std::string buffer;
 
 	public:
 	
@@ -52,6 +66,7 @@ class HttpRequest
 		std::string GetBody() const;
 
 		std::string GetErrorMessage() const;
+		ParseState getState() const;
 
 		// setters
 		void SetMethod(const std::string& method);
@@ -67,11 +82,15 @@ class HttpRequest
 		HttpRequest();
 
 		//member function
+		bool isComplete() const;
+		bool hasError() const;
+		ParseStatus ValidateContentLength();
+		
 		ParseStatus ParseRequestLine(const std::string& requestLine);
 		ParseStatus ParseHeaders(const std::string& headers);
 		ParseStatus ParseBody(const std::string& body);
 
-		ParseStatus ParseRequest(const std::string& raw);
+		ParseStatus ParseRequestChunk(const std::string& chunk);
 };
 
 #endif

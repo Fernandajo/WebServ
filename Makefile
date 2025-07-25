@@ -16,6 +16,7 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
 # === Directories ===
 SRC_DIR            := src
+HELPER_DIR         := $(SRC_DIR)/helpers
 CLASS_DIR          := $(SRC_DIR)/class_components
 CLASS_HELPER_DIR   := $(CLASS_DIR)/helpers
 INC_DIR            := inc
@@ -30,6 +31,8 @@ MAIN_SRCS := \
 	$(CLASS_DIR)/HTTPRequest.cpp \
 	$(CLASS_HELPER_DIR)/HTTPRequest_helper.cpp \
 	$(CLASS_DIR)/ServerOrg.cpp \
+	$(CLASS_DIR)/HTTPResponse.cpp \
+	$(HELPER_DIR)/mime.cpp \
 	$(SRC_DIR)/main.cpp
 
 MAIN_OBJS := $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(MAIN_SRCS))

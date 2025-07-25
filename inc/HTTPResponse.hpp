@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 16:52:19 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 18:14:21 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <fstream>
 #include "HTTPRequest.hpp"
+#include "helpers.hpp"
 
 // class for generating HTTP responses
 class HTTPResponse

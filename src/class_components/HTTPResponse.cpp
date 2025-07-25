@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 16:51:30 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/25 18:16:00 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,10 +39,31 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request)
 		SetBody("<h1>404 Not Found</h1>");
 		return (ResponseToString());
 	}
+	if (!S_ISREG(fileStat.st_mode))
+	{
+		SetStatusLine(version, 403, "Forbidden");
+		SetBody("<h1>403 Forbidden</h1>");
+		return (ResponseToString());
+	}
 
 	// Open and read file content
 	std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-	
+	if (!file.is_open())
+	{
+		SetStatusLine(version, 500, "Internal Server Error");
+		SetBody("<h1>500 Internal Server Error</h1>");
+		return (ResponseToString());
+	}
+
+	std::ostringstream fileContent;
+	fileContent << file.rdbuf();
+	file.close();
+
+	// Sends a success response with the file content
+	SetStatusLine(version, 200, "OK");
+	SetBody(fileContent.str());
+	SetHeader("Content-Type", GetMimeType(path));
+	return (ResponseToString());
 }
 
 // Generates the full HTTP response as a string
@@ -93,7 +114,8 @@ void HTTPResponse::SetHeader(const std::string& key, const std::string& value)
 void HTTPResponse::SetBody(const std::string& body)
 {
 	this->responseBody = body;
-	responseHeaders["Content-Length"] = std::to_string(body.size());
-	responseHeaders["Content-Type"] = "text/html";
+	std::ostringstream contentLength;
+	contentLength << body.size();
+	responseHeaders["Content-Length"] = contentLength.str();
 }
 

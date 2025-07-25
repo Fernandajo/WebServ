@@ -8,7 +8,7 @@ CYAN    = \033[1;36m
 
 # === Symbols ===
 CHECK_MARK = $(MAGENTA)✔$(RESET)
-ROCKET     = 🚀
+CAT_EMOJI     = 🐈
 
 # === Compiler and Flags ===
 CXX      = c++
@@ -57,7 +57,7 @@ $(TARGET): $(MAIN_OBJS) | $(OBJ_DIR)
 	@echo "$(MAGENTA)Linking $(TARGET)...$(RESET)"
 	@$(CXX) $(CXXFLAGS) $^ -o $@
 	@echo "$(MAGENTA)Linked successfully$(RESET) $(CHECK_MARK)"
-	@echo "$(GREEN)Main binary built!$(RESET) $(ROCKET)"
+	@echo "$(GREEN)Main binary built!$(RESET) $(CAT_EMOJI)"
 
 # === Object Compilation Rule (recursive safe) ===
 $(OBJ_DIR)/%.o: %.cpp

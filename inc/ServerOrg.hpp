@@ -17,18 +17,20 @@
 #include <ctime>
 #include <cstdlib>
 
-#define PORT 8080 // Default port, can be changed
+#define PORT 		8080 // Default port, can be changed
 #define MAX_CLIENTS 10 // Maximum number of clients 
 
 class ServerOrg {
 private:
-    int _socketFD;
-    struct sockaddr_in _serverAddr;
-    int _port;
-    std::vector<int> _clientSockets;
+    int					_socketFD;
+    struct sockaddr_in	_serverAddr;
+    int					_port;
+    std::vector<int>	_clientSockets;
+	void createSocket();
+	void bindEListen();
 public:
     ServerOrg();
-    ~ServerOrg();  
+    ~ServerOrg();
     void startServer();
     void stopServer();  
     // void handleRequest(int clientSocket);

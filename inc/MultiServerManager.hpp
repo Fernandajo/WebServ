@@ -16,6 +16,8 @@
 #include <signal.h>
 #include <ctime>
 #include <cstdlib>
+#include <unordered_map>
+#include <memory>
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
 #include "Server.hpp"
@@ -26,9 +28,14 @@
 
 class MultiServerManager {
 private:
-	int					epoll_fd;
-	epoll_event			ev;
-	std::map<int, Server*> 
+	int					_epoll_fd;
+	epoll_event			_ev;
+	std::vector<std::unique_ptr<Server>> _servers;
+    std::unordered_map<int, Server*> fd_to_server; 
+	std::map<int, Server*> _client_to_server;
+	void addServers();
+	void addServerToEpoll();
+	void initialize();
 	void closeClientConnection(int clientSocket);
 public:
     // void handleRequest(int clientSocket);

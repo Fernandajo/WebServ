@@ -9,25 +9,37 @@ MultiServerManager::~MultiServerManager() {
    
 }
 
-void MultiServerManager::startServer() {
-    epoll_fd = epoll_create1(0);
-    if (epoll_fd == -1) {
-		close(_socketFD);
+void MultiServerManager::addServer() {
+
+}
+
+void MultiServerManager::addServerToEpoll() {
+	for (std::vector<std::unique_ptr<Server>>::iterator it = _servers.begin(); it != _servers.end(); it++)
+	{
+		_ev.events = EPOLLIN;
+		_ev.data.fd = ;
+		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _socketFD, &_ev) == -1) {
+			close(_socketFD);
+			close(_epoll_fd);
+			throw std::runtime_error("Failed to add socket to epoll");
+		}
+	}
+	
+
+}
+
+void MultiServerManager::initialize() {
+    _epoll_fd = epoll_create1(0);
+    if (_epoll_fd == -1) {
+		// close servers
         throw std::runtime_error("Failed to create epoll");
     }
-    ev.events = EPOLLIN;
-    ev.data.fd = _socketFD;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, _socketFD, &ev) == -1) {
-		close(_socketFD);
-        close(epoll_fd);
-        throw std::runtime_error("Failed to add socket to epoll");
-    }
-	std::cout << "Server started on port " << _port << std::endl;
+
     epoll_event events[MAX_CLIENTS];
     sockaddr addr;
     socklen_t addrlen = sizeof(_serverAddr);
     while (true) {
-		int numEvents = epoll_wait(epoll_fd, events, MAX_CLIENTS, -1);
+		int numEvents = epoll_wait(_epoll_fd, events, MAX_CLIENTS, -1);
         for (int i = 0; i < numEvents; ++i) {
 			if (events[i].data.fd == _socketFD) {
 				int clientSocket = accept(_socketFD, &addr, &addrlen);
@@ -36,9 +48,9 @@ void MultiServerManager::startServer() {
                     std::cout << "New client connected." << std::endl;
                 }
                 set_nonblocking(clientSocket);
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.fd = clientSocket;
-                if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, clientSocket, &ev) == -1) {
+                _ev.events = EPOLLIN | EPOLLET;
+                _ev.data.fd = clientSocket;
+                if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, clientSocket, &_ev) == -1) {
 					std::cerr << "Failed to add client socket to epoll." << std::endl;
                     close(clientSocket);
                 }
@@ -71,13 +83,13 @@ void MultiServerManager::startServer() {
             }
 		}
 	}
-    close(epoll_fd);
+    close(_epoll_fd);
     stopServer();
 }
 
 void MultiServerManager::closeClientConnection(int clientSocket)
 {
-	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, clientSocket, &ev);
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, clientSocket, &_ev);
 	// remove from client vec
 	close(clientSocket);
 	std::cout << "Client " << clientSocket << " disconnected" << std::endl;

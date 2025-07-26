@@ -18,31 +18,23 @@
 #include <cstdlib>
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
+#include "Server.hpp"
+#include "helpers.hpp"
 
-#define PORT 		8080 // Default port, can be changed
+
 #define MAX_CLIENTS 10 // Maximum number of clients 
 
-class ServerOrg {
+class MultiServerManager {
 private:
-    int					_socketFD;
-    struct sockaddr_in	_serverAddr;
-    int					_port;
-    std::vector<int>	_clientSockets;
 	int					epoll_fd;
-	epoll_event ev;
+	epoll_event			ev;
+	std::map<int, Server*> 
 	void closeClientConnection(int clientSocket);
-	void createSocket();
-	void bindEListen();
 public:
-    ServerOrg();
-    ~ServerOrg();
-    void startServer();
-    void stopServer();  
     // void handleRequest(int clientSocket);
     // void sendResponse(int clientSocket, const std::string& response);
 };
 
-void set_nonblocking(int fd);
 void send_response(int client_fd);
 
 

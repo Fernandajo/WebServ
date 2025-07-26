@@ -1,49 +1,15 @@
-#include "../../inc/ServerOrg.hpp"
+#include "../../inc/MultiServerManager.hpp"
 #include <sys/epoll.h>
 
-ServerOrg::ServerOrg() {
-    _socketFD = -1;
-    _port = PORT; // Default port, can be changed
-    _clientSockets.reserve(10); 
-}
-
-ServerOrg::~ServerOrg() {
-    stopServer();
-}
-
-void ServerOrg::stopServer() {
-    close(_socketFD);
-    std::cout << "Server stopped." << std::endl;
-}
-// 
-void ServerOrg::createSocket()
-{
-	_socketFD = socket(AF_INET, SOCK_STREAM,0);
-    if (_socketFD < 0)  
-        throw std::runtime_error("Failed to create socket");
-    int opt = 1;
-    setsockopt(_socketFD, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    set_nonblocking(_socketFD);
-}
-
-void ServerOrg::bindEListen() {
-    _serverAddr.sin_family = AF_INET;
-    _serverAddr.sin_addr.s_addr = INADDR_ANY; // Bind to all interfaces
-    _serverAddr.sin_port = htons(_port);
-    if (bind(_socketFD, (struct sockaddr*)&_serverAddr, sizeof(_serverAddr)) < 0) {
-        close(_socketFD);
-        throw std::runtime_error("Failed to bind socket");
-    }
-    if (listen(_socketFD, 5) < 0) {    
-        close(_socketFD);
-        throw std::runtime_error("Failed to listen on socket");
-    }
+MultiServerManager::MultiServerManager() {
 
 }
 
-void ServerOrg::startServer() {
-	createSocket();
-	bindEListen();
+MultiServerManager::~MultiServerManager() {
+   
+}
+
+void MultiServerManager::startServer() {
     epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
 		close(_socketFD);
@@ -109,7 +75,7 @@ void ServerOrg::startServer() {
     stopServer();
 }
 
-void ServerOrg::closeClientConnection(int clientSocket)
+void MultiServerManager::closeClientConnection(int clientSocket)
 {
 	epoll_ctl(epoll_fd, EPOLL_CTL_DEL, clientSocket, &ev);
 	// remove from client vec

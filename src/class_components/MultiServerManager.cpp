@@ -9,7 +9,7 @@ MultiServerManager::~MultiServerManager() {
    
 }
 
-void MultiServerManager::addServer() {
+void MultiServerManager::addServers(Server _new) {
 
 }
 
@@ -17,7 +17,7 @@ void MultiServerManager::addServerToEpoll() {
 	for (std::vector<std::unique_ptr<Server>>::iterator it = _servers.begin(); it != _servers.end(); it++)
 	{
 		_ev.events = EPOLLIN;
-		_ev.data.fd = ;
+		_ev.data.fd = _servers.;
 		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _socketFD, &_ev) == -1) {
 			close(_socketFD);
 			close(_epoll_fd);

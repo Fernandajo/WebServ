@@ -33,7 +33,7 @@ private:
 	std::vector<std::unique_ptr<Server>> _servers;
     std::unordered_map<int, Server*> fd_to_server; 
 	std::map<int, Server*> _client_to_server;
-	void addServers();
+	void addServers(Server _new);
 	void addServerToEpoll();
 	void initialize();
 	void closeClientConnection(int clientSocket);

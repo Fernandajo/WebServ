@@ -30,7 +30,8 @@ TARGET = webserv
 MAIN_SRCS := \
 	$(CLASS_DIR)/HTTPRequest.cpp \
 	$(CLASS_HELPER_DIR)/HTTPRequest_helper.cpp \
-	$(CLASS_DIR)/ServerOrg.cpp \
+	$(CLASS_DIR)/Server.cpp \
+	$(CLASS_DIR)/MultiServerManager.cpp \
 	$(CLASS_DIR)/HTTPResponse.cpp \
 	$(HELPER_DIR)/mime.cpp \
 	$(SRC_DIR)/main.cpp

@@ -1,7 +1,6 @@
 #include "../../inc/ServerOrg.hpp"
 #include <sys/epoll.h>
 
-
 ServerOrg::ServerOrg() {
     _socketFD = -1;
     _port = PORT; // Default port, can be changed
@@ -13,7 +12,6 @@ ServerOrg::~ServerOrg() {
 }
 
 void ServerOrg::stopServer() {
-
     close(_socketFD);
     std::cout << "Server stopped." << std::endl;
 }

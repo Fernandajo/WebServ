@@ -1,4 +1,4 @@
-#include "../../inc/ServerOrg.hpp"
+#include "../../inc/MultiServerManager.hpp"
 #include <sys/epoll.h>
 
 ServerOrg::ServerOrg() {

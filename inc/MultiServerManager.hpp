@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
+#include "ConfigParser.hpp"
 
 #define PORT 		8080 // Default port, can be changed
 #define MAX_CLIENTS 10 // Maximum number of clients 
@@ -29,6 +30,7 @@ private:
     int					_port;
     std::vector<int>	_clientSockets;
 	int					epoll_fd;
+
 	epoll_event ev;
 	void closeClientConnection(int clientSocket);
 	void createSocket();

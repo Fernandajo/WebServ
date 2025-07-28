@@ -33,6 +33,8 @@ MAIN_SRCS := \
 	$(CLASS_DIR)/Server.cpp \
 	$(CLASS_DIR)/MultiServerManager.cpp \
 	$(CLASS_DIR)/HTTPResponse.cpp \
+	$(CLASS_DIR)/ConfigParser.cpp \
+	$(CLASS_HELPER_DIR)/ConfigParser_helper.cpp \
 	$(HELPER_DIR)/mime.cpp \
 	$(SRC_DIR)/main.cpp
 

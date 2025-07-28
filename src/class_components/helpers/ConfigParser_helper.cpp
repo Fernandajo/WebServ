@@ -1,0 +1,122 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ConfigParser_helper.cpp                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
+/*   Updated: 2025/07/26 19:53:18 by mdomnik          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "../../../inc/ConfigParser.hpp"
+
+std::string ConfigParser::peek() {
+	if (currentTokenIndex >= tokens.size())
+		throw std::runtime_error("No more tokens available");
+	return tokens[currentTokenIndex];
+}
+
+std::string ConfigParser::next() {
+	if (currentTokenIndex >= tokens.size())
+		throw std::runtime_error("No more tokens available");
+	return tokens[currentTokenIndex++];
+}
+
+void ConfigParser::expect(const std::string& expected) {
+	if (next() != expected)
+		throw std::runtime_error("Unexpected token: expected '" + expected + "', got '" + peek() + "'");
+}
+
+ServerConfig ConfigParser::ParseServerBlock()
+{
+	ServerConfig serverConfig;
+	expect("server");
+	expect("{");
+	while (peek() != "}")
+	{
+		std::string token = next();
+		
+		if (token == "listen")
+		{
+			serverConfig.port = std::atoi(next().c_str());
+			expect(";");
+		}
+		else if (token == "root")
+		{
+			serverConfig.root = next();
+			expect(";");
+		}
+		else if (token == "error_page")
+		{
+			int errorCode = std::atoi(next().c_str());
+			std::string errorPage = next();
+			serverConfig.errorPages[errorCode] = errorPage;
+			expect(";");
+		}
+		else if (token == "location")
+		{
+			serverConfig.routes.push_back(ParseLocationBlock());
+		}
+		else
+		{
+			throw std::runtime_error("Unexpected token in server block: " + token);
+		}
+	}
+
+	expect("}");
+	return (serverConfig);
+}
+
+RoutingConfig ConfigParser::ParseLocationBlock()
+{
+	RoutingConfig routingConfig;
+
+	routingConfig.path = next();
+	expect("{");
+	
+	while (peek() != "}")
+	{
+		std::string token = next();
+		
+		if (token == "allow_methods")
+		{
+			while (peek() != ";")
+			{
+				routingConfig.methods.push_back(next());
+			}
+			expect(";");
+		}
+		else if (token == "upload_path")
+		{
+			routingConfig.uploadPath = next();
+			expect(";");
+		}
+		else if (token == "root")
+		{
+			routingConfig.root = next();
+			expect(";");
+		}
+		else if (token == "autoindex")
+		{
+			std::string state = next();
+			if (state == "on")
+				routingConfig.isAutoIndexOn = true;
+			else if (state == "off")
+				routingConfig.isAutoIndexOn = false;
+			expect(";");
+		}
+		else if (token == "index")
+		{
+			routingConfig.indexFile = next();
+			expect(";");
+		}
+		else
+		{
+			throw std::runtime_error("Unexpected token in location block: " + token);
+		}
+	}
+	expect("}");
+	return (routingConfig);
+}

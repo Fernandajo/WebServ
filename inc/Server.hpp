@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:11:38 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/26 20:20:33 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/29 22:43:53 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stdexcept>
 
 // Struct for setting up location blocks; e.g. what path it is and
 // what methods can be used in that location

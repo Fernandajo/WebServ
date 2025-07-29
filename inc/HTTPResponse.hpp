@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 18:14:21 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/29 23:33:04 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,10 @@
 #include <map>
 #include <sstream>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <fstream>
 #include "HTTPRequest.hpp"
+#include "Server.hpp"
 #include "helpers.hpp"
 
 // class for generating HTTP responses
@@ -43,10 +45,16 @@ class HTTPResponse
 		void SetBody(const std::string& body);
 
 		// Generate the full HTTP response as a string
-		std::string GenerateResponse(const HttpRequest& request);
+		std::string GenerateResponse(const HttpRequest& request, const ServerConfig& serverConfig);
 
 		// packages the response into a single string
 		std::string ResponseToString() const;
+
+		// Generates a simple error response
+		void SetErrorResponse(const std::string& version, int code, const std::string& reason, const ServerConfig& server);
+
+		// Generate Directory Listing Response
+		std::string GenerateDirectoryListing(const std::string& directoryPath, const std::string& uri);
 };
 
 #endif

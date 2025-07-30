@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/26 19:53:18 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 17:54:32 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,16 @@ ServerConfig ConfigParser::ParseServerBlock()
 		else if (token == "root")
 		{
 			serverConfig.root = next();
+			expect(";");
+		}
+		else if (token == "host")
+		{
+			serverConfig.host = next();
+			expect(";");
+		}
+		else if (token == "server_name")
+		{
+			serverConfig.serverName = next();
 			expect(";");
 		}
 		else if (token == "error_page")
@@ -110,6 +120,16 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 		else if (token == "index")
 		{
 			routingConfig.indexFile = next();
+			expect(";");
+		}
+		else if (token == "cgi_path")
+		{
+			routingConfig.cgi_path = next();
+			expect(";");
+		}
+		else if (token == "cgi_ext")
+		{
+			routingConfig.cgi_ext = next();
 			expect(";");
 		}
 		else

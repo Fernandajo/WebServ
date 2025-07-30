@@ -32,6 +32,8 @@ struct RoutingConfig
 	std::string root;
 	std::string indexFile;
 	std::string uploadPath;
+	std::string cgi_path;
+	std::string cgi_ext;
 	std::vector<std::string> methods;
 	bool isAutoIndexOn;
 
@@ -42,6 +44,8 @@ struct RoutingConfig
 struct ServerConfig
 {
 	int port;
+	std::string host;
+	std::string serverName;
 	std::string root;
 	std::map<int, std::string> errorPages;
 	std::vector<RoutingConfig> routes;
@@ -54,12 +58,17 @@ struct ServerConfig
 class Server
 {
 private:
-	int					_socketFD;
-    struct sockaddr_in	_serverAddr;
-    int					_port;
-    std::vector<int>	_clientSockets;
-	std::string			_serverName;
-	std::string			_bindHost;
+	int							_socketFD;
+	struct sockaddr_in			_serverAddr;
+	std::vector<int>			_clientSockets;
+
+	int							_port;
+	std::string					_bindHost;
+	std::string					_serverName;
+	std::string					_root;
+	std::map<int, std::string>	_errorPages;
+	std::vector<RoutingConfig>	_routes;
+	
 	void createSocket();
 	void bindEListen();
 public:

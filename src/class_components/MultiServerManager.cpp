@@ -75,8 +75,8 @@ void MultiServerManager::initialize() {
 				if (status == Parse_Success)
 				{
 					HTTPResponse res;
-					std::string response = res.GenerateResponse(req);
-					send(*it, response.c_str(), response.size(), 0);
+					// std::string response = res.GenerateResponse(req, );
+					// send(*it, response.c_str(), response.size(), 0);
 					// maybe close and remove client
 				}
 

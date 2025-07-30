@@ -16,11 +16,40 @@
 #include <signal.h>
 #include <ctime>
 #include <cstdlib>
+#include <string>
+#include <map>
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
 #include "helpers.hpp"
 
 #define PORT 		8080 // Default port, can be changed
+
+// Struct for setting up location blocks; e.g. what path it is and
+// what methods can be used in that location
+struct RoutingConfig
+{
+	std::string path;
+	std::string root;
+	std::string indexFile;
+	std::string uploadPath;
+	std::vector<std::string> methods;
+	bool isAutoIndexOn;
+
+	RoutingConfig();
+};
+
+// Struct for seting up a server block
+struct ServerConfig
+{
+	int port;
+	std::string root;
+	std::map<int, std::string> errorPages;
+	std::vector<RoutingConfig> routes;
+
+	ServerConfig();
+	
+	const RoutingConfig& findRouteforURI(const std::string& uri) const;
+};
 
 class Server
 {
@@ -43,6 +72,5 @@ public:
 	std::string getServerName();
 	std::string getBindHost();
 };
-
 
 #endif

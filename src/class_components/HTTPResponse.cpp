@@ -6,46 +6,94 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 18:27:54 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/29 23:46:47 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPResponse.hpp"
+#include "../../inc/Server.hpp"
 
-std::string HTTPResponse::GenerateResponse(const HttpRequest& request)
+std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const ServerConfig& serverConfig)
 {
 	std::string method = request.GetMethod();
 	std::string uri = request.GetRequestURI();
 	std::string version = request.GetVersion();
 
+	const RoutingConfig& route = serverConfig.findRouteforURI(uri);
+
+	if (std::find(route.methods.begin(), route.methods.end(), method) == route.methods.end())
+	{
+		SetErrorResponse(version, 405, "Method Not Allowed", serverConfig);
+		SetHeader("Allow", "GET, POST, DELETE");
+		return (ResponseToString());
+	}
+
+	std::string root = route.root.empty() ? serverConfig.root : route.root;
+	std::string fullpath = root + uri;
+
 	if (method == "GET")
 	{
-		// will be replaced with actual file handling logic
-		std::string path = "./www" + uri;
-		if (path[path.size() - 1] == '/')
-			path += "index.html";
-		
-		// Check if the file exists
+		std::string path = fullpath;
 		struct stat fileStat;
-		if (stat(path.c_str(), &fileStat) != 0)
-		{
-			SetStatusLine(version, 404, "Not Found");
-			SetBody("<h1>404 Not Found</h1>");
-			return (ResponseToString());
+			
+		if (stat(path.c_str(), &fileStat) == 0 && S_ISDIR(fileStat.st_mode)) {
+			if (path[path.size() - 1] != '/')
+				path += "/";
+			path += route.indexFile.empty() ? "index.html" : route.indexFile;
+		
+			if (stat(path.c_str(), &fileStat) != 0)
+			{
+				if (route.isAutoIndexOn)
+				{
+					std::string listing = GenerateDirectoryListing(fullpath, uri);
+					SetStatusLine(version, 200, "OK");
+					SetBody(listing);
+					SetHeader("Content-Type", "text/html");
+					return ResponseToString();
+				}
+				else
+				{
+					SetErrorResponse(version, 403, "Forbidden", serverConfig);
+					return ResponseToString();
+				}
+			}
+		} else if (stat(path.c_str(), &fileStat) != 0) {
+			SetErrorResponse(version, 404, "Not Found", serverConfig);
+			return ResponseToString();
 		}
+
 		if (!S_ISREG(fileStat.st_mode))
 		{
-			SetStatusLine(version, 403, "Forbidden");
-			SetBody("<h1>403 Forbidden</h1>");
-			return (ResponseToString());
+			std::string indexedPath = path;
+			if (indexedPath[indexedPath.size() - 1] != '/')
+				indexedPath += '/';
+			indexedPath += route.indexFile.empty() ? "index.html" : route.indexFile;
+			
+			struct stat indexedStat;
+			if (stat(indexedPath.c_str(), &indexedStat) == 0 && S_ISREG(indexedStat.st_mode))
+			{
+				path = indexedPath;
+			}
+			else if (route.isAutoIndexOn)
+			{
+				std::string directoryListing = GenerateDirectoryListing(fullpath, uri);
+				SetStatusLine(version, 200, "OK");
+				SetBody(directoryListing);
+				SetHeader("Content-Type", "text/html");
+				return (ResponseToString());
+			}
+			else
+			{
+				SetErrorResponse(version, 403, "Forbidden", serverConfig);
+				return (ResponseToString());
+			}
 		}
 	
 		// Open and read file content
 		std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 		if (!file.is_open())
 		{
-			SetStatusLine(version, 500, "Internal Server Error");
-			SetBody("<h1>500 Internal Server Error</h1>");
+			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
 			return (ResponseToString());
 		}
 	
@@ -65,21 +113,25 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request)
 		std::string body = request.GetBody();
 		if (body.empty())
 		{
-			SetStatusLine(version, 400, "Bad Request");
-			SetBody("<h1>400 Bad Request</h1>");
+			SetErrorResponse(version, 400, "Bad Request", serverConfig);
 			return (ResponseToString());
 		}
 		
-		// Simulate file upload handling
-		std::string uploadPath = "./www/uploads/testfile.txt";
+		if (route.uploadPath.empty())
+		{
+			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
+			return (ResponseToString());
+		}
+
+		std::string uploadPath = route.uploadPath + "/testfile.txt";
+
 		
 		// create the directory if it doesn't exist
 		std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
 		if (!outFile.is_open())
 		{
 			// If the file cannot be opened, return an error
-			SetStatusLine(version, 500, "Internal Server Error");
-			SetBody("<h1>500 Internal Server Error</h1>");
+			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
 			return (ResponseToString());
 		}
 
@@ -95,14 +147,13 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request)
 	else if (method == "DELETE")
 	{
 		// set specific path to delete
-		std::string path = "./www" + uri;
+		std::string path = fullpath;
 		
 		// attempt to delete the file
 		if (remove(path.c_str()) != 0)
 		{
 			// If the file cannot be deleted, return an error
-			SetStatusLine(version, 404, "Not Found");
-			SetBody("<h1>404 Not Found</h1>");
+			SetErrorResponse(version, 404, "Not Found", serverConfig);
 			return (ResponseToString());
 		}
 		
@@ -114,9 +165,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request)
 	else
 	{
 		// If the method is not supported, return a 405 Not Allowed response
-		SetStatusLine(version, 405, "Method Not Allowed");
-		SetHeader("Allow", "GET, POST, DELETE");
-		SetBody("<h1>405 Method Not Allowed</h1>");
+		SetErrorResponse(version, 405, "Method Not Allowed", serverConfig);
 		return (ResponseToString());
 	}
 }
@@ -138,6 +187,110 @@ std::string HTTPResponse::ResponseToString() const
 	outputResponse << "\r\n" << GetBody();
 
 	return (outputResponse.str());
+}
+
+// Generates a simple error response
+void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, const ServerConfig& server)
+{
+	SetStatusLine(version, code, reason);
+
+	std::map<int, std::string>::const_iterator it = server.errorPages.find(code);
+	if (it != server.errorPages.end())
+	{
+		std::string errorPagePath = server.root + it->second;
+		std::ifstream errorPageFile(errorPagePath.c_str(), std::ios::in);
+		if (errorPageFile.is_open())
+		{
+			std::ostringstream buffer;
+			buffer << errorPageFile.rdbuf();
+			SetBody(buffer.str());
+			errorPageFile.close();
+			SetHeader("Content-Type", "text/html");
+			return;
+		}
+	}
+	
+	std::ostringstream defaultBody;
+	defaultBody << "<h1>" << code << " " << reason << "</h1>";
+	SetHeader("Content-Type", "text/html");
+	SetBody(defaultBody.str());
+}
+
+std::string HTTPResponse::GenerateDirectoryListing(const std::string& directoryPath, const std::string& uri)
+{
+	std::ostringstream responseBody;
+
+	// HTML header
+	responseBody << "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">";
+	responseBody << "<title>Index of " << uri << "</title>";
+	responseBody << "<style>"
+				 << "body { font-family: monospace; padding: 20px; }"
+				 << "table { border-collapse: collapse; width: 100%; }"
+				 << "th, td { padding: 8px 12px; border-bottom: 1px solid #ccc; text-align: left; }"
+				 << "a { text-decoration: none; color: #0366d6; }"
+				 << "</style>";
+	responseBody << "</head><body>";
+	responseBody << "<h1>Index of " << uri << "</h1>";
+	responseBody << "<table><tr><th>Name</th><th>Type</th><th>Size</th></tr>";
+
+	// Open directory
+	DIR* dir = opendir(directoryPath.c_str());
+	if (!dir)
+		return "<h1>500 Internal Server Error</h1>";
+
+	// Optional: Add parent directory link if not root
+	if (uri != "/") {
+		std::string parent = uri;
+		if (parent[parent.size() - 1] == '/')
+			parent = parent.substr(0, parent.size() - 1);
+		size_t lastSlash = parent.find_last_of('/');
+		if (lastSlash != std::string::npos)
+			parent = parent.substr(0, lastSlash + 1);
+		else
+			parent = "/";
+		responseBody << "<tr><td><a href=\"" << parent << "\">../</a></td><td>dir</td><td>-</td></tr>";
+	}
+
+	struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL)
+	{
+		std::string entryName = entry->d_name;
+		if (entryName == "." || entryName == "..")
+			continue;
+
+		std::string fullPath = directoryPath + "/" + entryName;
+		struct stat st;
+		if (stat(fullPath.c_str(), &st) == -1)
+			continue;
+
+		std::string link = uri;
+		if (link[link.size() - 1] != '/')
+			link += "/";
+		link += entryName;
+
+		std::string displayName = entryName;
+		std::string typeStr = "file";
+		std::string sizeStr = "-";
+
+		if (S_ISDIR(st.st_mode)) {
+			displayName += "/";
+			typeStr = "dir";
+		} else {
+			std::ostringstream sizeBuf;
+			sizeBuf << st.st_size;
+			sizeStr = sizeBuf.str();
+		}
+
+		responseBody << "<tr>"
+					 << "<td><a href=\"" << link << "\">" << displayName << "</a></td>"
+					 << "<td>" << typeStr << "</td>"
+					 << "<td>" << sizeStr << "</td>"
+					 << "</tr>";
+	}
+
+	closedir(dir);
+	responseBody << "</table></body></html>";
+	return responseBody.str();
 }
 
 // Default constructor

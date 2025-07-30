@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 16:03:47 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/26 20:14:45 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:27:14 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ class ConfigParser
 		void TokenizeConfigFile();
 
 		// Helpers to parse server and routing blocks
-		ServerConfig ParseServerBlock();
+		Server ParseServerBlock();
 		RoutingConfig ParseLocationBlock();
 
 		// Helper functions for parsing tokens
@@ -52,7 +52,7 @@ class ConfigParser
 		std::vector<std::string> GetTokens() const;
 		
 		// Primary function to parse the config file
-		std::vector<ServerConfig> ParseConfigFile();
+		std::vector<Server> ParseConfigFile();
 
 };
 

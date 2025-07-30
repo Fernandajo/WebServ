@@ -59,8 +59,24 @@ void Server::stopServer() {
     std::cout << "Server stopped." << std::endl;
 }
 
+// Getters
 int Server::getFD() { return _socketFD; }
-int Server::getPort() { return _port; }
-std::string Server::getServerName() { return _serverName; }
-std::string Server::getBindHost() { return _bindHost; }
+int Server::getPort() const { return _port; }
+std::string Server::getBindHost() const { return _bindHost; }
+std::string Server::getServerName() const { return _serverName; }
+std::string Server::getRoot() const { return _root; }
+std::map<int, std::string> Server::getErrorPages() const { return _errorPages; }
+std::vector<RoutingConfig> Server::getRoutes() const { return _routes; }
+
+// Setters
+void Server::setPort(int port) { _port = port; }
+void Server::setBindHost(const std::string& bindHost) { _bindHost = bindHost; }
+void Server::setServerName(const std::string& serverName) { _serverName = serverName; }
+void Server::setRoot(const std::string& root) { _root = root; }
+void Server::setErrorPage(int errorCode, const std::string& errorPage) {
+	_errorPages[errorCode] = errorPage;
+}
+void Server::setRoute(const RoutingConfig& route) {
+	_routes.push_back(route);
+}
 

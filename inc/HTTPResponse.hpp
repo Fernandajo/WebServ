@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/29 23:33:04 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:42:01 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,13 +45,13 @@ class HTTPResponse
 		void SetBody(const std::string& body);
 
 		// Generate the full HTTP response as a string
-		std::string GenerateResponse(const HttpRequest& request, const ServerConfig& serverConfig);
+		std::string GenerateResponse(const HttpRequest& request, const Server& serverConfig);
 
 		// packages the response into a single string
 		std::string ResponseToString() const;
 
 		// Generates a simple error response
-		void SetErrorResponse(const std::string& version, int code, const std::string& reason, const ServerConfig& server);
+		void SetErrorResponse(const std::string& version, int code, const std::string& reason, const Server& server);
 
 		// Generate Directory Listing Response
 		std::string GenerateDirectoryListing(const std::string& directoryPath, const std::string& uri);

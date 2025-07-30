@@ -40,47 +40,47 @@ struct RoutingConfig
 	RoutingConfig();
 };
 
-// Struct for seting up a server block
-struct ServerConfig
-{
-	int port;
-	std::string host;
-	std::string serverName;
-	std::string root;
-	std::map<int, std::string> errorPages;
-	std::vector<RoutingConfig> routes;
-
-	ServerConfig();
-	
-	const RoutingConfig& findRouteforURI(const std::string& uri) const;
-};
-
 class Server
 {
-private:
-	int							_socketFD;
-	struct sockaddr_in			_serverAddr;
-	std::vector<int>			_clientSockets;
-
-	int							_port;
-	std::string					_bindHost;
-	std::string					_serverName;
-	std::string					_root;
-	std::map<int, std::string>	_errorPages;
-	std::vector<RoutingConfig>	_routes;
+	private:
+		int							_socketFD;
+		struct sockaddr_in			_serverAddr;
+		std::vector<int>			_clientSockets;
 	
-	void createSocket();
-	void bindEListen();
-public:
-	Server();
-	~Server();
-    void startServer();
-    void stopServer();
-	int getFD();
-	int getPort();
-	std::string getServerName();
-	std::string getBindHost();
-	const RoutingConfig& findRouteforURI(const std::string& uri) const;
+		int							_port;
+		std::string					_bindHost;
+		std::string					_serverName;
+		std::string					_root;
+		std::map<int, std::string>	_errorPages;
+		std::vector<RoutingConfig>	_routes;
+		
+		void createSocket();
+		void bindEListen();
+	public:
+		Server();
+		~Server();
+		void startServer();
+		void stopServer();
+		
+		//getters
+		int getFD();
+
+		int getPort() const;
+		std::string getBindHost() const;
+		std::string getServerName() const;
+		std::string getRoot() const;
+		std::map<int, std::string> getErrorPages() const;
+		std::vector<RoutingConfig> getRoutes() const;
+
+		//setters
+		void setPort(int port);
+		void setBindHost(const std::string& bindHost);
+		void setServerName(const std::string& serverName);
+		void setRoot(const std::string& root);
+		void setErrorPage(int errorCode, const std::string& errorPage);
+		void setRoute(const RoutingConfig& route);
+	
+		const RoutingConfig& findRouteforURI(const std::string& uri) const;
 };
 
 #endif

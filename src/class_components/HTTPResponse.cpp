@@ -6,29 +6,29 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/29 23:46:47 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:46:21 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPResponse.hpp"
 #include "../../inc/Server.hpp"
 
-std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const ServerConfig& serverConfig)
+std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Server& server)
 {
 	std::string method = request.GetMethod();
 	std::string uri = request.GetRequestURI();
 	std::string version = request.GetVersion();
 
-	const RoutingConfig& route = serverConfig.findRouteforURI(uri);
+	const RoutingConfig& route = server.findRouteforURI(uri);
 
 	if (std::find(route.methods.begin(), route.methods.end(), method) == route.methods.end())
 	{
-		SetErrorResponse(version, 405, "Method Not Allowed", serverConfig);
+		SetErrorResponse(version, 405, "Method Not Allowed", server);
 		SetHeader("Allow", "GET, POST, DELETE");
 		return (ResponseToString());
 	}
 
-	std::string root = route.root.empty() ? serverConfig.root : route.root;
+	std::string root = route.root.empty() ? server.getRoot() : route.root;
 	std::string fullpath = root + uri;
 
 	if (method == "GET")
@@ -53,12 +53,12 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 				}
 				else
 				{
-					SetErrorResponse(version, 403, "Forbidden", serverConfig);
+					SetErrorResponse(version, 403, "Forbidden", server);
 					return ResponseToString();
 				}
 			}
 		} else if (stat(path.c_str(), &fileStat) != 0) {
-			SetErrorResponse(version, 404, "Not Found", serverConfig);
+			SetErrorResponse(version, 404, "Not Found", server);
 			return ResponseToString();
 		}
 
@@ -84,7 +84,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 			}
 			else
 			{
-				SetErrorResponse(version, 403, "Forbidden", serverConfig);
+				SetErrorResponse(version, 403, "Forbidden", server);
 				return (ResponseToString());
 			}
 		}
@@ -93,7 +93,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 		std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 		if (!file.is_open())
 		{
-			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
+			SetErrorResponse(version, 500, "Internal Server Error", server);
 			return (ResponseToString());
 		}
 	
@@ -113,13 +113,13 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 		std::string body = request.GetBody();
 		if (body.empty())
 		{
-			SetErrorResponse(version, 400, "Bad Request", serverConfig);
+			SetErrorResponse(version, 400, "Bad Request", server);
 			return (ResponseToString());
 		}
 		
 		if (route.uploadPath.empty())
 		{
-			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
+			SetErrorResponse(version, 500, "Internal Server Error", server);
 			return (ResponseToString());
 		}
 
@@ -131,7 +131,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 		if (!outFile.is_open())
 		{
 			// If the file cannot be opened, return an error
-			SetErrorResponse(version, 500, "Internal Server Error", serverConfig);
+			SetErrorResponse(version, 500, "Internal Server Error", server);
 			return (ResponseToString());
 		}
 
@@ -153,7 +153,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 		if (remove(path.c_str()) != 0)
 		{
 			// If the file cannot be deleted, return an error
-			SetErrorResponse(version, 404, "Not Found", serverConfig);
+			SetErrorResponse(version, 404, "Not Found", server);
 			return (ResponseToString());
 		}
 		
@@ -165,7 +165,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Ser
 	else
 	{
 		// If the method is not supported, return a 405 Not Allowed response
-		SetErrorResponse(version, 405, "Method Not Allowed", serverConfig);
+		SetErrorResponse(version, 405, "Method Not Allowed", server);
 		return (ResponseToString());
 	}
 }
@@ -190,14 +190,14 @@ std::string HTTPResponse::ResponseToString() const
 }
 
 // Generates a simple error response
-void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, const ServerConfig& server)
+void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, const Server& server)
 {
 	SetStatusLine(version, code, reason);
 
-	std::map<int, std::string>::const_iterator it = server.errorPages.find(code);
-	if (it != server.errorPages.end())
+	std::map<int, std::string>::const_iterator it = server.getErrorPages().find(code);
+	if (it != server.getErrorPages().end())
 	{
-		std::string errorPagePath = server.root + it->second;
+		std::string errorPagePath = server.getRoot() + it->second;
 		std::ifstream errorPageFile(errorPagePath.c_str(), std::ios::in);
 		if (errorPageFile.is_open())
 		{

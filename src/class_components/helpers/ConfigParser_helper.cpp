@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 17:54:32 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:37:50 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,9 +29,9 @@ void ConfigParser::expect(const std::string& expected) {
 		throw std::runtime_error("Unexpected token: expected '" + expected + "', got '" + peek() + "'");
 }
 
-ServerConfig ConfigParser::ParseServerBlock()
+Server ConfigParser::ParseServerBlock()
 {
-	ServerConfig serverConfig;
+	Server serverConfig;
 	expect("server");
 	expect("{");
 	while (peek() != "}")
@@ -40,34 +40,34 @@ ServerConfig ConfigParser::ParseServerBlock()
 		
 		if (token == "listen")
 		{
-			serverConfig.port = std::atoi(next().c_str());
+			serverConfig.setPort(std::atoi(next().c_str()));
 			expect(";");
 		}
 		else if (token == "root")
 		{
-			serverConfig.root = next();
+			serverConfig.setRoot(next());
 			expect(";");
 		}
 		else if (token == "host")
 		{
-			serverConfig.host = next();
+			serverConfig.setBindHost(next());
 			expect(";");
 		}
 		else if (token == "server_name")
 		{
-			serverConfig.serverName = next();
+			serverConfig.setServerName(next());
 			expect(";");
 		}
 		else if (token == "error_page")
 		{
 			int errorCode = std::atoi(next().c_str());
 			std::string errorPage = next();
-			serverConfig.errorPages[errorCode] = errorPage;
+			serverConfig.setErrorPage(errorCode, errorPage);
 			expect(";");
 		}
 		else if (token == "location")
 		{
-			serverConfig.routes.push_back(ParseLocationBlock());
+			serverConfig.setRoute(ParseLocationBlock());
 		}
 		else
 		{

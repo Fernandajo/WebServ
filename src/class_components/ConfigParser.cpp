@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 16:17:09 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/26 20:15:14 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:25:07 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,9 +73,9 @@ void ConfigParser::TokenizeConfigFile()
 		tokens.push_back(buffer);
 }
 
-std::vector<ServerConfig> ConfigParser::ParseConfigFile()
+std::vector<Server> ConfigParser::ParseConfigFile()
 {
-	std::vector<ServerConfig> servers;
+	std::vector<Server> servers;
 	std::vector<std::string> tokens = GetTokens();
 	currentTokenIndex = 0;
 	while (currentTokenIndex < tokens.size())
@@ -87,5 +87,5 @@ std::vector<ServerConfig> ConfigParser::ParseConfigFile()
 		else
 			throw std::runtime_error("Unexpected token: " + tokens[currentTokenIndex]);
 	}
-	return servers;
+	return (servers);
 }

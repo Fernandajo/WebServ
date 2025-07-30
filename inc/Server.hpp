@@ -80,6 +80,7 @@ public:
 	int getPort();
 	std::string getServerName();
 	std::string getBindHost();
+	const RoutingConfig& findRouteforURI(const std::string& uri) const;
 };
 
 #endif

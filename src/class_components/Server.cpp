@@ -2,7 +2,7 @@
 
 Server::Server() {
 	_socketFD = -1;
-    _port = PORT; // Default port, can be changed
+    _bindHost = "localhost"; // Default bind host
     _clientSockets.reserve(10); 
 }
 
@@ -55,8 +55,16 @@ void Server::startServer() {
 }
 
 void Server::stopServer() {
+    for (std::vector<int>::iterator i = _clientSockets.begin(); i != _clientSockets.end(); i++)
+    {
+        close(*i);
+    }
     close(_socketFD);
     std::cout << "Server stopped." << std::endl;
+}
+
+void Server::addClientSocket(int clientSocket) {
+	_clientSockets.push_back(clientSocket);
 }
 
 // Getters

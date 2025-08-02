@@ -1,5 +1,5 @@
-#ifndef SERVERORG_HPP
-#define SERVERORG_HPP
+#ifndef MULTI_SERVER_MANAGER_HPP
+#define MULTI_SERVER_MANAGER_HPP
 
 #include <iostream>
 #include <vector>
@@ -19,7 +19,7 @@
 #include <memory>
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
-
+#include "ConfigParser.hpp"
 #include "Server.hpp"
 #include "helpers.hpp"
 
@@ -33,11 +33,12 @@ private:
 	std::vector<Server> _servers;
     std::map<int, Server*> fd_to_server; 
 	std::map<int, Server*> _client_to_server;
-	void addServers(Server _new);
 	void addServerToEpoll();
 	void initialize();
 	void closeClientConnection(int clientSocket);
 public:
+	MultiServerManager(std::string& configfile);
+	~MultiServerManager();
     // void handleRequest(int clientSocket);
     // void sendResponse(int clientSocket, const std::string& response);
 };
@@ -45,4 +46,4 @@ public:
 void send_response(int client_fd);
 
 
-#endif // SERVERORG_HPP
+#endif // MULTI_SERVER_MANAGER_HPP

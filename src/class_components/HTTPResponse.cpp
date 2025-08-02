@@ -13,7 +13,7 @@
 #include "../../inc/HTTPResponse.hpp"
 #include "../../inc/Server.hpp"
 
-std::string HTTPResponse::GenerateResponse(const HttpRequest& request, const Server& server)
+std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& server)
 {
 	std::string method = request.GetMethod();
 	std::string uri = request.GetRequestURI();
@@ -190,7 +190,7 @@ std::string HTTPResponse::ResponseToString() const
 }
 
 // Generates a simple error response
-void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, const Server& server)
+void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, Server& server)
 {
 	SetStatusLine(version, code, reason);
 

@@ -19,7 +19,6 @@
 #include <string>
 #include <map>
 #include "HTTPRequest.hpp"
-#include "HTTPResponse.hpp"
 #include "helpers.hpp"
 
 #define PORT 		8080 // Default port, can be changed
@@ -61,10 +60,9 @@ class Server
 		~Server();
 		void startServer();
 		void stopServer();
-		
+		void addClientSocket(int clientSocket);
 		//getters
 		int getFD();
-
 		int getPort() const;
 		std::string getBindHost() const;
 		std::string getServerName() const;

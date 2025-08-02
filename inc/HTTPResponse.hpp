@@ -45,13 +45,13 @@ class HTTPResponse
 		void SetBody(const std::string& body);
 
 		// Generate the full HTTP response as a string
-		std::string GenerateResponse(const HttpRequest& request, const Server& serverConfig);
+		std::string GenerateResponse(const HttpRequest& request, Server& serverConfig);
 
 		// packages the response into a single string
 		std::string ResponseToString() const;
 
 		// Generates a simple error response
-		void SetErrorResponse(const std::string& version, int code, const std::string& reason, const Server& server);
+		void SetErrorResponse(const std::string& version, int code, const std::string& reason, Server& server);
 
 		// Generate Directory Listing Response
 		std::string GenerateDirectoryListing(const std::string& directoryPath, const std::string& uri);

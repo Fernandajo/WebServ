@@ -6,7 +6,7 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/03 04:03:27 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/04 01:47:12 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,8 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				}
 			}
 		} else if (stat(path.c_str(), &fileStat) != 0) {
+			std::cout << path << std::endl;
+			std::cout << "wtf?"	<< std::endl;
 			SetErrorResponse(version, 404, "Not Found", server);
 			return ResponseToString();
 		}
@@ -136,30 +138,34 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			std::string output;
 			int	pid = fork();
 			if (pid == 0) {
+				close(pipefd[1]);
 				dup2(pipefd[1], STDOUT_FILENO);
 				close(pipefd[0]);
-				close(pipefd[1]);
 
-				char *argv[] = {const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
+				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
 				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
 				char *envp[] = {
 					const_cast<char*>("REQUEST_METHOD=GET"),
+					const_cast<char*>("QUERY_STRING=42"),
 					const_cast<char*>(scriptFilenameEnv.c_str()),
 					NULL
 				};
 				execve(route.cgi_path.c_str(), argv, envp);
-				std::cerr << "execve failed!" << std::endl;
+				std::cerr << route.cgi_path << std::endl;
+				std::cerr << path << std::endl;
+				std::cerr << argv[0] << std::endl;
+				std::cerr << "execve failed! errno: " << errno << " (" << strerror(errno) << ")" << std::endl;
 			}
 			else {
-				close (pipefd[1]);
-
 				char buffer[1024];
 				ssize_t bytes_read;
 
+				std::cout << "hello\n";
 				while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
 					output.append(buffer, bytes_read);
 				}
 
+				std::cout << output << "\n";
 				close(pipefd[0]);
 				waitpid(pid, NULL, 0);
 

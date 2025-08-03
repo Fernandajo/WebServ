@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:42:01 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/03 03:54:54 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <map>
 #include <sstream>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <dirent.h>
 #include <fstream>
 #include "HTTPRequest.hpp"

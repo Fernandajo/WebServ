@@ -3,15 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:46:21 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/03 04:03:27 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPResponse.hpp"
 #include "../../inc/Server.hpp"
+
+static bool isCGI(const std::string& path, const std::string& cgi_ext)
+{
+	if (cgi_ext.empty())
+		return false;
+	size_t pos = path.rfind(cgi_ext);
+
+	return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+}
 
 std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& server)
 {
@@ -31,16 +40,17 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	std::string root = route.root.empty() ? server.getRoot() : route.root;
 	std::string fullpath = root + uri;
 
+	// TODO: Handle CGI requests for POST AND GET methods here
 	if (method == "GET")
 	{
 		std::string path = fullpath;
 		struct stat fileStat;
-			
+
+		// Check if the path is a directory and exists
 		if (stat(path.c_str(), &fileStat) == 0 && S_ISDIR(fileStat.st_mode)) {
 			if (path[path.size() - 1] != '/')
 				path += "/";
 			path += route.indexFile.empty() ? "index.html" : route.indexFile;
-		
 			if (stat(path.c_str(), &fileStat) != 0)
 			{
 				if (route.isAutoIndexOn)
@@ -62,6 +72,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			return ResponseToString();
 		}
 
+		// Check if the path is a directory
 		if (!S_ISREG(fileStat.st_mode))
 		{
 			std::string indexedPath = path;
@@ -88,24 +99,73 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				return (ResponseToString());
 			}
 		}
-	
-		// Open and read file content
-		std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-		if (!file.is_open())
+			// IMPLEMENTED CGI HANDLING HERE!! Revert in case of issues
+		// Open and read file content if not CGI
+		if (!isCGI(path, route.cgi_ext))
 		{
-			SetErrorResponse(version, 500, "Internal Server Error", server);
+			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+		
+			std::ostringstream fileContent;
+			fileContent << file.rdbuf();
+			file.close();
+		
+			// Sends a success response with the file content
+			SetStatusLine(version, 200, "OK");
+			SetBody(fileContent.str());
+			SetHeader("Content-Type", GetMimeType(path));
 			return (ResponseToString());
 		}
-	
-		std::ostringstream fileContent;
-		fileContent << file.rdbuf();
-		file.close();
-	
-		// Sends a success response with the file content
-		SetStatusLine(version, 200, "OK");
-		SetBody(fileContent.str());
-		SetHeader("Content-Type", GetMimeType(path));
-		return (ResponseToString());
+		else
+		{
+			// TODO add QUERY_STRING, CONTENT_LENGTH, CONTENT_TYPE, SCRIPT_FILENAME, PROTOCOL fields!
+			setenv("REQUEST_METHOD", method.c_str(), 1);
+			setenv("SCRIPT_FILENAME", path.c_str(), 1);
+
+			// Only redirecting stdout because method is GET
+			int pipefd[2];
+			if (pipe(pipefd) == -1) {
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+
+			std::string output;
+			int	pid = fork();
+			if (pid == 0) {
+				dup2(pipefd[1], STDOUT_FILENO);
+				close(pipefd[0]);
+				close(pipefd[1]);
+
+				char *argv[] = {const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
+				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
+				char *envp[] = {
+					const_cast<char*>("REQUEST_METHOD=GET"),
+					const_cast<char*>(scriptFilenameEnv.c_str()),
+					NULL
+				};
+				execve(route.cgi_path.c_str(), argv, envp);
+				std::cerr << "execve failed!" << std::endl;
+			}
+			else {
+				close (pipefd[1]);
+
+				char buffer[1024];
+				ssize_t bytes_read;
+
+				while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+					output.append(buffer, bytes_read);
+				}
+
+				close(pipefd[0]);
+				waitpid(pid, NULL, 0);
+
+			}
+			return (output);
+		}
 	}
 	else if (method == "POST")
 	{

@@ -6,20 +6,32 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/04 18:23:42 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/04 19:37:05 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPResponse.hpp"
 #include "../../inc/Server.hpp"
 
-static bool isCGI(const std::string& path, const std::string& cgi_ext)
+static bool isCGI(const std::string& path, const std::string& cgi_ext, const std::string & method)
 {
-	if (cgi_ext.empty())
-		return false;
-	size_t pos = path.rfind(cgi_ext);
-
-	return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+	if (method == "GET")
+	{
+		if (cgi_ext.empty())
+			return false;
+		size_t pos = path.rfind(cgi_ext);
+	
+		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+	}
+	else if (method == "POST")
+	{
+		if (cgi_ext.empty())
+			return false;
+		size_t pos = path.rfind(cgi_ext);
+	
+		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+	}
+	return false;
 }
 
 std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& server)
@@ -69,7 +81,6 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			}
 		} else if (stat(path.c_str(), &fileStat) != 0) {
 			std::cout << path << std::endl;
-			std::cout << "wtf?"	<< std::endl;
 			SetErrorResponse(version, 404, "Not Found", server);
 			return ResponseToString();
 		}
@@ -193,26 +204,32 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			return (ResponseToString());
 		}
 
-		std::string uploadPath = route.uploadPath + "/testfile.txt";
+		// Add URI to upload path
+		std::string uploadPath = route.uploadPath + uri;
 
-		
-		// create the directory if it doesn't exist
-		std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
-		if (!outFile.is_open())
+		if (!isCGI(uploadPath, route.cgi_ext, "POST"))
 		{
-			// If the file cannot be opened, return an error
-			SetErrorResponse(version, 500, "Internal Server Error", server);
+			// create the directory if it doesn't exist
+			std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
+			if (!outFile.is_open())
+			{
+				// If the file cannot be opened, return an error
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+	
+			// Write the body to the file
+			outFile.write(body.c_str(), body.size());
+			outFile.close();
+	
+			// If the upload is successful, return a 201 Created response
+			SetStatusLine(version, 201, "Created");
+			SetBody("<h1>201 Created</h1>");
 			return (ResponseToString());
 		}
-
-		// Write the body to the file
-		outFile.write(body.c_str(), body.size());
-		outFile.close();
-
-		// If the upload is successful, return a 201 Created response
-		SetStatusLine(version, 201, "Created");
-		SetBody("<h1>201 Created</h1>");
-		return (ResponseToString());
+		else {
+			// TODO Implement CGI handling for POST method
+		}
 	}
 	else if (method == "DELETE")
 	{
@@ -263,7 +280,6 @@ std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
 {
 	std::istringstream stream(cgiOutput);
 	std::string line;
-	std::string status = "200 OK";
 	std::ostringstream headers;
 	std::string body;
 	bool inHeaders = true;
@@ -281,12 +297,12 @@ std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
 		}
 	}
 
-	// Now build full HTTP/1.1 response
+	// Building response for http 1.1
 	std::ostringstream response;
 	response << GetStatusLine() << "\r\n"
-	         << headers.str()
-	         << "\r\n"
-	         << body;
+			 << headers.str()
+			 << "\r\n"
+			 << body;
 
 	return response.str();
 }

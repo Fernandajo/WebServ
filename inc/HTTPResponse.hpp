@@ -6,7 +6,7 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/03 03:54:54 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/04 17:13:25 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ class HTTPResponse
 
 		// packages the response into a single string
 		std::string ResponseToString() const;
-
+		std::string	ResponseFromCGI(const std::string& cgiOutput);
 		// Generates a simple error response
 		void SetErrorResponse(const std::string& version, int code, const std::string& reason, Server& server);
 

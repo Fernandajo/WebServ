@@ -6,7 +6,7 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/04 01:47:12 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/04 18:23:42 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,10 +138,10 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			std::string output;
 			int	pid = fork();
 			if (pid == 0) {
-				close(pipefd[1]);
+				// close(pipefd[1]);
 				dup2(pipefd[1], STDOUT_FILENO);
-				close(pipefd[0]);
-
+				// close(pipefd[0]);
+				
 				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
 				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
 				char *envp[] = {
@@ -160,17 +160,21 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				char buffer[1024];
 				ssize_t bytes_read;
 
-				std::cout << "hello\n";
+				close(pipefd[1]); // Close write end in parent
+
+				std::cout << "pid: " << pid << "\n";
 				while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+					std::cout << "bytes read: " << bytes_read << "\n";
 					output.append(buffer, bytes_read);
 				}
 
-				std::cout << output << "\n";
+				std::cout << "output: " << output << "\n";
 				close(pipefd[0]);
 				waitpid(pid, NULL, 0);
 
 			}
-			return (output);
+			SetStatusLine(version, 200, "OK");
+			return (ResponseFromCGI(output));
 		}
 	}
 	else if (method == "POST")
@@ -253,6 +257,38 @@ std::string HTTPResponse::ResponseToString() const
 	outputResponse << "\r\n" << GetBody();
 
 	return (outputResponse.str());
+}
+
+std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
+{
+	std::istringstream stream(cgiOutput);
+	std::string line;
+	std::string status = "200 OK";
+	std::ostringstream headers;
+	std::string body;
+	bool inHeaders = true;
+
+	while (std::getline(stream, line)) {
+		// Search for end of line for headers
+		if (line == "\r" || line == "" || line == "\n") {
+			inHeaders = false;
+			continue;
+		}
+		if (inHeaders) {
+			headers << line << "\r\n";
+		} else {
+			body += line + "\n"; // Preserve newlines in body
+		}
+	}
+
+	// Now build full HTTP/1.1 response
+	std::ostringstream response;
+	response << GetStatusLine() << "\r\n"
+	         << headers.str()
+	         << "\r\n"
+	         << body;
+
+	return response.str();
 }
 
 // Generates a simple error response

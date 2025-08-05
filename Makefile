@@ -6,7 +6,7 @@
 #    By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/29 23:32:19 by mdomnik           #+#    #+#              #
-#    Updated: 2025/08/04 16:26:44 by moojig12         ###   ########.fr        #
+#    Updated: 2025/08/05 12:40:15 by moojig12         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -25,7 +25,7 @@ CAT_EMOJI  = 🐈
 
 # === Compiler and Flags ===
 CXX      = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address
+CXXFLAGS = -g -Wall -Wextra -Werror -std=c++98 -fsanitize=address
 
 # === Directories ===
 SRC_DIR            := src

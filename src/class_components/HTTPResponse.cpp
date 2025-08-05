@@ -6,7 +6,7 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/04 19:37:05 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/05 12:36:19 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,6 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	std::string root = route.root.empty() ? server.getRoot() : route.root;
 	std::string fullpath = root + uri;
 
-	// TODO: Handle CGI requests for POST AND GET methods here
 	if (method == "GET")
 	{
 		std::string path = fullpath;
@@ -114,7 +113,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		}
 			// IMPLEMENTED CGI HANDLING HERE!! Revert in case of issues
 		// Open and read file content if not CGI
-		if (!isCGI(path, route.cgi_ext))
+		if (!isCGI(path, route.cgi_ext, "GET"))
 		{
 			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 			if (!file.is_open())
@@ -135,10 +134,6 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		}
 		else
 		{
-			// TODO add QUERY_STRING, CONTENT_LENGTH, CONTENT_TYPE, SCRIPT_FILENAME, PROTOCOL fields!
-			setenv("REQUEST_METHOD", method.c_str(), 1);
-			setenv("SCRIPT_FILENAME", path.c_str(), 1);
-
 			// Only redirecting stdout because method is GET
 			int pipefd[2];
 			if (pipe(pipefd) == -1) {
@@ -151,7 +146,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			if (pid == 0) {
 				// close(pipefd[1]);
 				dup2(pipefd[1], STDOUT_FILENO);
-				// close(pipefd[0]);
+				close(pipefd[0]);
 				
 				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
 				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
@@ -227,8 +222,64 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			SetBody("<h1>201 Created</h1>");
 			return (ResponseToString());
 		}
+			// Using 2 pipes because it's standard? More safer than using a single pipe for POST
 		else {
-			// TODO Implement CGI handling for POST method
+			// 0 is stdin 1 is stdout
+			int	input_pipefd[2];
+			int	output_pipefd[2];
+			if (pipe(input_pipefd) == -1) {
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+			if (pipe(output_pipefd) == -1) {
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+
+			std::string	output;
+			int	pid = fork();
+			if (pid == 0) {
+				dup2(output_pipefd[1], STDOUT_FILENO);
+				dup2(input_pipefd[0], STDIN_FILENO);
+				close(output_pipefd[0]);
+				close(input_pipefd[1]);
+
+				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(uploadPath.c_str()), NULL };
+				// Don't mind what's going on here, Will clean up later into a seperate function
+				std::stringstream ss;
+				ss << "CONTENT_LENGTH=" << body.size();
+				std::string contentLengthStr = ss.str();
+				std::string scriptFilenameStr = "SCRIPT_FILENAME=" + uploadPath;
+				char *envp[] = {
+					const_cast<char*>("REQUEST_METHOD=POST"),
+					const_cast<char*>("CONTENT_TYPE=application/x-www-form-urlencoded"),
+					const_cast<char*>(contentLengthStr.c_str()),
+					const_cast<char*>(scriptFilenameStr.c_str()),
+					NULL
+				};
+
+				execve(route.cgi_path.c_str(), argv, envp);
+			}
+			else {
+				close(input_pipefd[1]);
+				close(output_pipefd[0]);
+
+				write(input_pipefd[0], body.c_str(), body.size());
+				close(input_pipefd[0]);
+
+				char	buffer[1024];
+				ssize_t	bytes;
+
+				while ((bytes = read(output_pipefd[1], buffer, sizeof(buffer))) > 0) {
+					output.append(buffer, bytes);
+				}
+
+				close(output_pipefd[1]);
+				
+				waitpid(pid, NULL, 0);
+			}
+			SetStatusLine(version, 200, "OK");
+			return (ResponseFromCGI(output));
 		}
 	}
 	else if (method == "DELETE")

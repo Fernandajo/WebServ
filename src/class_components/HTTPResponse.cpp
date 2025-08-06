@@ -6,7 +6,7 @@
 /*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 18:29:41 by nmandakh         ###   ########.fr       */
+/*   Updated: 2025/08/06 18:58:17 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,13 +15,16 @@
 
 static bool isCGI(const std::string& path, const std::string& cgi_ext, const std::string & method)
 {
+	std::cout << cgi_ext << std::endl;
 	if (method == "GET")
 	{
 		if (cgi_ext.empty())
 			return false;
 		size_t pos = path.rfind(cgi_ext);
 	
-		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+		if (pos == std::string::npos)
+			return false;
+		return (true);
 	}
 	else if (method == "POST")
 	{
@@ -29,7 +32,9 @@ static bool isCGI(const std::string& path, const std::string& cgi_ext, const std
 			return false;
 		size_t pos = path.rfind(cgi_ext);
 	
-		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+		if (pos == std::string::npos)
+			return false;
+		return (true);
 	}
 	return false;
 }
@@ -113,26 +118,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		}
 			// IMPLEMENTED CGI HANDLING HERE!! Revert in case of issues
 		// Open and read file content if not CGI
-		if (!isCGI(path, route.cgi_ext, "GET"))
-		{
-			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-			if (!file.is_open())
-			{
-				SetErrorResponse(version, 500, "Internal Server Error", server);
-				return (ResponseToString());
-			}
-		
-			std::ostringstream fileContent;
-			fileContent << file.rdbuf();
-			file.close();
-		
-			// Sends a success response with the file content
-			SetStatusLine(version, 200, "OK");
-			SetBody(fileContent.str());
-			SetHeader("Content-Type", GetMimeType(path));
-			return (ResponseToString());
-		}
-		else
+		if (isCGI(path, route.cgi_ext, "GET"))
 		{
 			// Only redirecting stdout because method is GET
 			int pipefd[2];
@@ -182,6 +168,26 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			SetStatusLine(version, 200, "OK");
 			return (ResponseFromCGI(output));
 		}
+		else
+		{
+			std::cout << "not CGI" << std::endl;
+			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+		
+			std::ostringstream fileContent;
+			fileContent << file.rdbuf();
+			file.close();
+		
+			// Sends a success response with the file content
+			SetStatusLine(version, 200, "OK");
+			SetBody(fileContent.str());
+			SetHeader("Content-Type", GetMimeType(path));
+			return (ResponseToString());
+		}
 	}
 	else if (method == "POST")
 	{
@@ -202,29 +208,8 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		// Add URI to upload path
 		std::string uploadPath = route.uploadPath + uri;
 
-		if (!isCGI(uploadPath, route.cgi_ext, "POST"))
+		if (isCGI(uploadPath, route.cgi_ext, "POST"))
 		{
-			// create the directory if it doesn't exist
-			std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
-			if (!outFile.is_open())
-			{
-				std::cerr << "File could not be opened\n";
-				// If the file cannot be opened, return an error
-				SetErrorResponse(version, 500, "Internal Server Error", server);
-				return (ResponseToString());
-			}
-	
-			// Write the body to the file
-			outFile.write(body.c_str(), body.size());
-			outFile.close();
-	
-			// If the upload is successful, return a 201 Created response
-			SetStatusLine(version, 201, "Created");
-			SetBody("<h1>201 Created</h1>");
-			return (ResponseToString());
-		}
-			// Using 2 pipes because it's standard? More safer than using a single pipe for POST
-		else {
 			// 0 is stdin 1 is stdout
 			int	input_pipefd[2];
 			int	output_pipefd[2];
@@ -284,6 +269,28 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			SetStatusLine(version, 200, "OK");
 			return (ResponseFromCGI(output));
 		}
+			// Using 2 pipes because it's standard? More safer than using a single pipe for POST
+			else {
+				std::cout << "not CGI" << std::endl;
+				// create the directory if it doesn't exist
+				std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
+				if (!outFile.is_open())
+				{
+					std::cerr << "File could not be opened\n";
+					// If the file cannot be opened, return an error
+					SetErrorResponse(version, 500, "Internal Server Error", server);
+					return (ResponseToString());
+				}
+		
+				// Write the body to the file
+				outFile.write(body.c_str(), body.size());
+				outFile.close();
+		
+				// If the upload is successful, return a 201 Created response
+				SetStatusLine(version, 201, "Created");
+				SetBody("<h1>201 Created</h1>");
+				return (ResponseToString());
+		}
 	}
 	else if (method == "DELETE")
 	{
@@ -330,7 +337,7 @@ std::string HTTPResponse::ResponseToString() const
 	return (outputResponse.str());
 }
 
-std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
+std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput, HttpRequest& request)
 {
 	std::istringstream stream(cgiOutput);
 	std::string line;

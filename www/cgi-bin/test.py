@@ -23,3 +23,6 @@ if os.environ.get('REQUEST_METHOD') == 'POST':
         print(body)
     except Exception as e:
         print(f"Error reading POST body: {e}")
+        
+else
+	print:

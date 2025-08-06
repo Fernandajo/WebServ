@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
+/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/05 13:17:53 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/06 18:19:12 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -366,8 +366,9 @@ void HTTPResponse::SetErrorResponse(const std::string& version, int code, const 
 {
 	SetStatusLine(version, code, reason);
 
-	std::map<int, std::string>::const_iterator it = server.getErrorPages().find(code);
-	if (it != server.getErrorPages().end())
+	std::map<int, std::string> errorPages = server.getErrorPages();
+	std::map<int, std::string>::const_iterator it = errorPages.find(code);
+	if (it != errorPages.end())
 	{
 		std::string errorPagePath = server.getRoot() + it->second;
 		std::ifstream errorPageFile(errorPagePath.c_str(), std::ios::in);

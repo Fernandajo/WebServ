@@ -6,7 +6,7 @@
 /*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/05 12:36:19 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/05 13:17:53 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -208,6 +208,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
 			if (!outFile.is_open())
 			{
+				std::cerr << "File could not be opened\n";
 				// If the file cannot be opened, return an error
 				SetErrorResponse(version, 500, "Internal Server Error", server);
 				return (ResponseToString());
@@ -228,10 +229,12 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			int	input_pipefd[2];
 			int	output_pipefd[2];
 			if (pipe(input_pipefd) == -1) {
+				std::cerr << "pipe() failed: " << strerror(errno) << std::endl;
 				SetErrorResponse(version, 500, "Internal Server Error", server);
 				return (ResponseToString());
 			}
 			if (pipe(output_pipefd) == -1) {
+				std::cerr << "pipe() failed: " << strerror(errno) << std::endl;
 				SetErrorResponse(version, 500, "Internal Server Error", server);
 				return (ResponseToString());
 			}

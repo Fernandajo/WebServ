@@ -6,7 +6,7 @@
 /*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 19:18:18 by nmandakh         ###   ########.fr       */
+/*   Updated: 2025/08/06 19:30:34 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,6 +136,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				
 				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
 				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
+				// TODO: Extract from request headers and populate the envp* array
 				char *envp[] = {
 					const_cast<char*>("REQUEST_METHOD=GET"),
 					const_cast<char*>("QUERY_STRING=42"),
@@ -234,6 +235,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 
 				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(uploadPath.c_str()), NULL };
 				// Don't mind what's going on here, Will clean up later into a seperate function
+				// TODO: Extract from request headers and populate the envp* array
 				std::stringstream ss;
 				ss << "CONTENT_LENGTH=" << body.size();
 				std::string contentLengthStr = ss.str();

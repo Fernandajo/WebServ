@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser_helper.cpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:37:50 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/03 02:14:51 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,7 +127,7 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 			routingConfig.cgi_path = next();
 			expect(";");
 		}
-		else if (token == "cgi_ext")
+		else if (token == "cgi_extension")
 		{
 			routingConfig.cgi_ext = next();
 			expect(";");

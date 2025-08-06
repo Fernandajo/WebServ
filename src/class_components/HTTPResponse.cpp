@@ -3,15 +3,36 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 18:03:02 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/06 18:29:41 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../inc/HTTPResponse.hpp"
 #include "../../inc/Server.hpp"
+
+static bool isCGI(const std::string& path, const std::string& cgi_ext, const std::string & method)
+{
+	if (method == "GET")
+	{
+		if (cgi_ext.empty())
+			return false;
+		size_t pos = path.rfind(cgi_ext);
+	
+		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+	}
+	else if (method == "POST")
+	{
+		if (cgi_ext.empty())
+			return false;
+		size_t pos = path.rfind(cgi_ext);
+	
+		return (pos != std::string::npos && pos == path.size() - cgi_ext.size());
+	}
+	return false;
+}
 
 std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& server)
 {
@@ -35,12 +56,12 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	{
 		std::string path = fullpath;
 		struct stat fileStat;
-			
+
+		// Check if the path is a directory and exists
 		if (stat(path.c_str(), &fileStat) == 0 && S_ISDIR(fileStat.st_mode)) {
 			if (path[path.size() - 1] != '/')
 				path += "/";
 			path += route.indexFile.empty() ? "index.html" : route.indexFile;
-		
 			if (stat(path.c_str(), &fileStat) != 0)
 			{
 				if (route.isAutoIndexOn)
@@ -58,10 +79,12 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				}
 			}
 		} else if (stat(path.c_str(), &fileStat) != 0) {
+			std::cout << path << std::endl;
 			SetErrorResponse(version, 404, "Not Found", server);
 			return ResponseToString();
 		}
 
+		// Check if the path is a directory
 		if (!S_ISREG(fileStat.st_mode))
 		{
 			std::string indexedPath = path;
@@ -88,24 +111,77 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				return (ResponseToString());
 			}
 		}
-	
-		// Open and read file content
-		std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
-		if (!file.is_open())
+			// IMPLEMENTED CGI HANDLING HERE!! Revert in case of issues
+		// Open and read file content if not CGI
+		if (!isCGI(path, route.cgi_ext, "GET"))
 		{
-			SetErrorResponse(version, 500, "Internal Server Error", server);
+			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
+			if (!file.is_open())
+			{
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+		
+			std::ostringstream fileContent;
+			fileContent << file.rdbuf();
+			file.close();
+		
+			// Sends a success response with the file content
+			SetStatusLine(version, 200, "OK");
+			SetBody(fileContent.str());
+			SetHeader("Content-Type", GetMimeType(path));
 			return (ResponseToString());
 		}
-	
-		std::ostringstream fileContent;
-		fileContent << file.rdbuf();
-		file.close();
-	
-		// Sends a success response with the file content
-		SetStatusLine(version, 200, "OK");
-		SetBody(fileContent.str());
-		SetHeader("Content-Type", GetMimeType(path));
-		return (ResponseToString());
+		else
+		{
+			// Only redirecting stdout because method is GET
+			int pipefd[2];
+			if (pipe(pipefd) == -1) {
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+
+			std::string output;
+			int	pid = fork();
+			if (pid == 0) {
+				// close(pipefd[1]);
+				dup2(pipefd[1], STDOUT_FILENO);
+				close(pipefd[0]);
+				
+				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(path.c_str()), NULL};
+				std::string scriptFilenameEnv = "SCRIPT_FILENAME=" + path;
+				char *envp[] = {
+					const_cast<char*>("REQUEST_METHOD=GET"),
+					const_cast<char*>("QUERY_STRING=42"),
+					const_cast<char*>(scriptFilenameEnv.c_str()),
+					NULL
+				};
+				execve(route.cgi_path.c_str(), argv, envp);
+				std::cerr << route.cgi_path << std::endl;
+				std::cerr << path << std::endl;
+				std::cerr << argv[0] << std::endl;
+				std::cerr << "execve failed! errno: " << errno << " (" << strerror(errno) << ")" << std::endl;
+			}
+			else {
+				char buffer[1024];
+				ssize_t bytes_read;
+
+				close(pipefd[1]); // Close write end in parent
+
+				std::cout << "pid: " << pid << "\n";
+				while ((bytes_read = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+					std::cout << "bytes read: " << bytes_read << "\n";
+					output.append(buffer, bytes_read);
+				}
+
+				std::cout << "output: " << output << "\n";
+				close(pipefd[0]);
+				waitpid(pid, NULL, 0);
+
+			}
+			SetStatusLine(version, 200, "OK");
+			return (ResponseFromCGI(output));
+		}
 	}
 	else if (method == "POST")
 	{
@@ -123,27 +199,91 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			return (ResponseToString());
 		}
 
-		std::string uploadPath = route.uploadPath + "/testfile.txt";
+		// Add URI to upload path
+		std::string uploadPath = route.uploadPath + uri;
 
-		
-		// create the directory if it doesn't exist
-		std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
-		if (!outFile.is_open())
+		if (!isCGI(uploadPath, route.cgi_ext, "POST"))
 		{
-			// If the file cannot be opened, return an error
-			std::cout << "rearaer" << std::endl;
-			SetErrorResponse(version, 500, "Internal Server Error", server);
+			// create the directory if it doesn't exist
+			std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
+			if (!outFile.is_open())
+			{
+				std::cerr << "File could not be opened\n";
+				// If the file cannot be opened, return an error
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+	
+			// Write the body to the file
+			outFile.write(body.c_str(), body.size());
+			outFile.close();
+	
+			// If the upload is successful, return a 201 Created response
+			SetStatusLine(version, 201, "Created");
+			SetBody("<h1>201 Created</h1>");
 			return (ResponseToString());
 		}
+			// Using 2 pipes because it's standard? More safer than using a single pipe for POST
+		else {
+			// 0 is stdin 1 is stdout
+			int	input_pipefd[2];
+			int	output_pipefd[2];
+			if (pipe(input_pipefd) == -1) {
+				std::cerr << "pipe() failed: " << strerror(errno) << std::endl;
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
+			if (pipe(output_pipefd) == -1) {
+				std::cerr << "pipe() failed: " << strerror(errno) << std::endl;
+				SetErrorResponse(version, 500, "Internal Server Error", server);
+				return (ResponseToString());
+			}
 
-		// Write the body to the file
-		outFile.write(body.c_str(), body.size());
-		outFile.close();
+			std::string	output;
+			int	pid = fork();
+			if (pid == 0) {
+				dup2(output_pipefd[1], STDOUT_FILENO);
+				dup2(input_pipefd[0], STDIN_FILENO);
+				close(output_pipefd[0]);
+				close(input_pipefd[1]);
 
-		// If the upload is successful, return a 201 Created response
-		SetStatusLine(version, 201, "Created");
-		SetBody("<h1>201 Created</h1>");
-		return (ResponseToString());
+				char *argv[] = { const_cast<char*>(route.cgi_path.c_str()), const_cast<char*>(uploadPath.c_str()), NULL };
+				// Don't mind what's going on here, Will clean up later into a seperate function
+				std::stringstream ss;
+				ss << "CONTENT_LENGTH=" << body.size();
+				std::string contentLengthStr = ss.str();
+				std::string scriptFilenameStr = "SCRIPT_FILENAME=" + uploadPath;
+				char *envp[] = {
+					const_cast<char*>("REQUEST_METHOD=POST"),
+					const_cast<char*>("CONTENT_TYPE=application/x-www-form-urlencoded"),
+					const_cast<char*>(contentLengthStr.c_str()),
+					const_cast<char*>(scriptFilenameStr.c_str()),
+					NULL
+				};
+
+				execve(route.cgi_path.c_str(), argv, envp);
+			}
+			else {
+				close(input_pipefd[1]);
+				close(output_pipefd[0]);
+
+				write(input_pipefd[0], body.c_str(), body.size());
+				close(input_pipefd[0]);
+
+				char	buffer[1024];
+				ssize_t	bytes;
+
+				while ((bytes = read(output_pipefd[1], buffer, sizeof(buffer))) > 0) {
+					output.append(buffer, bytes);
+				}
+
+				close(output_pipefd[1]);
+				
+				waitpid(pid, NULL, 0);
+			}
+			SetStatusLine(version, 200, "OK");
+			return (ResponseFromCGI(output));
+		}
 	}
 	else if (method == "DELETE")
 	{
@@ -190,13 +330,45 @@ std::string HTTPResponse::ResponseToString() const
 	return (outputResponse.str());
 }
 
+std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
+{
+	std::istringstream stream(cgiOutput);
+	std::string line;
+	std::ostringstream headers;
+	std::string body;
+	bool inHeaders = true;
+
+	while (std::getline(stream, line)) {
+		// Search for end of line for headers
+		if (line == "\r" || line == "" || line == "\n") {
+			inHeaders = false;
+			continue;
+		}
+		if (inHeaders) {
+			headers << line << "\r\n";
+		} else {
+			body += line + "\n"; // Preserve newlines in body
+		}
+	}
+
+	// Building response for http 1.1
+	std::ostringstream response;
+	response << GetStatusLine() << "\r\n"
+			 << headers.str()
+			 << "\r\n"
+			 << body;
+
+	return response.str();
+}
+
 // Generates a simple error response
 void HTTPResponse::SetErrorResponse(const std::string& version, int code, const std::string& reason, Server& server)
 {
 	SetStatusLine(version, code, reason);
 
-	std::map<int, std::string>::const_iterator it = server.getErrorPages().find(code);
-	if (it != server.getErrorPages().end())
+	std::map<int, std::string> errorPages = server.getErrorPages();
+	std::map<int, std::string>::const_iterator it = errorPages.find(code);
+	if (it != errorPages.end())
 	{
 		std::string errorPagePath = server.getRoot() + it->second;
 		std::ifstream errorPageFile(errorPagePath.c_str(), std::ios::in);

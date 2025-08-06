@@ -52,6 +52,21 @@
 		"random": "cpp",
 		"ranges": "cpp",
 		"span": "cpp",
-		"cinttypes": "cpp"
+		"cinttypes": "cpp",
+		"hash_map": "cpp",
+		"charconv": "cpp",
+		"chrono": "cpp",
+		"condition_variable": "cpp",
+		"list": "cpp",
+		"ratio": "cpp",
+		"format": "cpp",
+		"iomanip": "cpp",
+		"mutex": "cpp",
+		"queue": "cpp",
+		"semaphore": "cpp",
+		"stop_token": "cpp",
+		"text_encoding": "cpp",
+		"thread": "cpp",
+		"variant": "cpp"
 	}
 }

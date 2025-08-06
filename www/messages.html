@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Messages</title>
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+    <div class="background">
+        <div class="glass-card">
+            <h1>📄 Message Board</h1>
+            <div id="messages">
+                <ul id="messageList"></ul>
+            </div>
+            <a href="/" class="back-link">← Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        async function loadMessages() {
+            try {
+                const res = await fetch("/messages.txt");
+                if (!res.ok) return;
+                const text = await res.text();
+                const messages = text.trim().split("\\n").filter(Boolean);
+                const list = document.getElementById("messageList");
+                messages.forEach(msg => {
+                    const li = document.createElement("li");
+                    li.textContent = msg;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error("Error loading messages:", err);
+            }
+        }
+        loadMessages();
+    </script>
+</body>
+</html>

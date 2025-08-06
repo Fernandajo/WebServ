@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>WebServer</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css" />
+    <link href="="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 </head>
 <body>
-    <div class="center-wrapper">
+    <div class="background">
         <div class="glass-card">
             <header>
+                <img src="/images/42logo.png" alt="42 Logo" class="logo" />
                 <h1>WebServer</h1>
                 <p>A fast and minimalist C++ web server project.</p>
             </header>
@@ -21,6 +22,18 @@
                         <li><a href="https://github.com/Fernandajo" target="_blank">Fernandajo</a></li>
                         <li><a href="https://github.com/moojig12" target="_blank">moojig12</a></li>
                     </ul>
+                </section>
+
+                <section>
+                    <h2>💬 Leave a Message</h2>
+                    <form method="POST" action="/messages" class="test-form">
+                        <input type="text" name="message" placeholder="Your message..." required />
+                        <button type="submit">Post Message</button>
+                    </form>
+                </section>
+
+                <section>
+                    <a href="/messages.html" class="gallery-link">📄 View Messages</a>
                 </section>
             </main>
             <footer>

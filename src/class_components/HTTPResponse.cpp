@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:46:21 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/04 00:38:27 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,40 +109,43 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	}
 	else if (method == "POST")
 	{
-		// gets the body of the request
 		std::string body = request.GetBody();
-		if (body.empty())
-		{
+	
+		if (body.empty()) {
 			SetErrorResponse(version, 400, "Bad Request", server);
-			return (ResponseToString());
+			return ResponseToString();
 		}
-		
-		if (route.uploadPath.empty())
-		{
+	
+		// Only handle POSTs to /messages
+		if (request.GetPath() != "/messages") {
+			SetErrorResponse(version, 404, "Not Found", server);
+			return ResponseToString();
+		}
+	
+		std::string decoded = urlDecode(body); // You'll define this below
+		std::string message = extractKeyValue(decoded, "message");
+	
+		if (message.empty()) {
+			SetErrorResponse(version, 400, "Missing message", server);
+			return ResponseToString();
+		}
+	
+		std::string uploadPath = "./www/messages.txt";
+	
+		std::ofstream outFile(uploadPath.c_str(), std::ios::app); // append mode
+		if (!outFile.is_open()) {
 			SetErrorResponse(version, 500, "Internal Server Error", server);
-			return (ResponseToString());
+			return ResponseToString();
 		}
-
-		std::string uploadPath = route.uploadPath + "/testfile.txt";
-
-		
-		// create the directory if it doesn't exist
-		std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
-		if (!outFile.is_open())
-		{
-			// If the file cannot be opened, return an error
-			SetErrorResponse(version, 500, "Internal Server Error", server);
-			return (ResponseToString());
-		}
-
-		// Write the body to the file
-		outFile.write(body.c_str(), body.size());
+	
+		outFile << message << "\n";
 		outFile.close();
-
-		// If the upload is successful, return a 201 Created response
-		SetStatusLine(version, 201, "Created");
-		SetBody("<h1>201 Created</h1>");
-		return (ResponseToString());
+	
+		// Redirect to messages.html
+		SetStatusLine(version, 303, "See Other");
+		SetHeader("Location", "/messages.html");
+		SetBody("");
+		return ResponseToString();
 	}
 	else if (method == "DELETE")
 	{

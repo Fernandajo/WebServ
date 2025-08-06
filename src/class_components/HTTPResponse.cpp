@@ -6,7 +6,7 @@
 /*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 18:58:17 by nmandakh         ###   ########.fr       */
+/*   Updated: 2025/08/06 19:18:18 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -337,7 +337,7 @@ std::string HTTPResponse::ResponseToString() const
 	return (outputResponse.str());
 }
 
-std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput, HttpRequest& request)
+std::string HTTPResponse::ResponseFromCGI(const std::string& cgiOutput)
 {
 	std::istringstream stream(cgiOutput);
 	std::string line;

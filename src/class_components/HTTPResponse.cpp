@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/04 00:38:27 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/06 18:03:02 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,43 +109,41 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	}
 	else if (method == "POST")
 	{
+		// gets the body of the request
 		std::string body = request.GetBody();
-	
-		if (body.empty()) {
+		if (body.empty())
+		{
 			SetErrorResponse(version, 400, "Bad Request", server);
-			return ResponseToString();
+			return (ResponseToString());
 		}
-	
-		// Only handle POSTs to /messages
-		if (request.GetPath() != "/messages") {
-			SetErrorResponse(version, 404, "Not Found", server);
-			return ResponseToString();
-		}
-	
-		std::string decoded = urlDecode(body); // You'll define this below
-		std::string message = extractKeyValue(decoded, "message");
-	
-		if (message.empty()) {
-			SetErrorResponse(version, 400, "Missing message", server);
-			return ResponseToString();
-		}
-	
-		std::string uploadPath = "./www/messages.txt";
-	
-		std::ofstream outFile(uploadPath.c_str(), std::ios::app); // append mode
-		if (!outFile.is_open()) {
+		
+		if (route.uploadPath.empty())
+		{
 			SetErrorResponse(version, 500, "Internal Server Error", server);
-			return ResponseToString();
+			return (ResponseToString());
 		}
-	
-		outFile << message << "\n";
+
+		std::string uploadPath = route.uploadPath + "/testfile.txt";
+
+		
+		// create the directory if it doesn't exist
+		std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
+		if (!outFile.is_open())
+		{
+			// If the file cannot be opened, return an error
+			std::cout << "rearaer" << std::endl;
+			SetErrorResponse(version, 500, "Internal Server Error", server);
+			return (ResponseToString());
+		}
+
+		// Write the body to the file
+		outFile.write(body.c_str(), body.size());
 		outFile.close();
-	
-		// Redirect to messages.html
-		SetStatusLine(version, 303, "See Other");
-		SetHeader("Location", "/messages.html");
-		SetBody("");
-		return ResponseToString();
+
+		// If the upload is successful, return a 201 Created response
+		SetStatusLine(version, 201, "Created");
+		SetBody("<h1>201 Created</h1>");
+		return (ResponseToString());
 	}
 	else if (method == "DELETE")
 	{

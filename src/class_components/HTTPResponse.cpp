@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 19:30:34 by nmandakh         ###   ########.fr       */
+/*   Updated: 2025/08/08 18:02:56 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,7 +171,6 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		}
 		else
 		{
-			std::cout << "not CGI" << std::endl;
 			std::ifstream file(path.c_str(), std::ios::in | std::ios::binary);
 			if (!file.is_open())
 			{
@@ -192,22 +191,35 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	}
 	else if (method == "POST")
 	{
+		std::cout << "POST method" << std::endl;
 		// gets the body of the request
 		std::string body = request.GetBody();
 		if (body.empty())
 		{
+			std::cerr << "Body is empty" << std::endl;
 			SetErrorResponse(version, 400, "Bad Request", server);
 			return (ResponseToString());
 		}
 		
-		if (route.uploadPath.empty())
+		if (route.uploadPath.empty() && route.cgi_ext.empty())
 		{
+			std::cerr << "Upload path is empty" << std::endl;
 			SetErrorResponse(version, 500, "Internal Server Error", server);
 			return (ResponseToString());
 		}
 
 		// Add URI to upload path
-		std::string uploadPath = route.uploadPath + uri;
+		std::cout << "Upload path: " << route.uploadPath << std::endl;
+		std::cout << "URI: " << uri << std::endl;
+		std::string uploadPath;
+		if (!route.cgi_ext.empty())
+		{
+			uploadPath = "./www";
+			uploadPath += uri;
+		}
+		else
+			uploadPath = route.uploadPath + uri;
+		std::cout << "Full upload path: " << uploadPath << std::endl;
 
 		if (isCGI(uploadPath, route.cgi_ext, "POST"))
 		{
@@ -251,47 +263,44 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 				execve(route.cgi_path.c_str(), argv, envp);
 			}
 			else {
-				close(input_pipefd[1]);
-				close(output_pipefd[0]);
-
-				write(input_pipefd[0], body.c_str(), body.size());
 				close(input_pipefd[0]);
+				write(input_pipefd[1], body.c_str(), body.size());
+				close(input_pipefd[1]);
+				close(output_pipefd[1]);
 
 				char	buffer[1024];
 				ssize_t	bytes;
 
-				while ((bytes = read(output_pipefd[1], buffer, sizeof(buffer))) > 0) {
+				while ((bytes = read(output_pipefd[0], buffer, sizeof(buffer))) > 0) {
 					output.append(buffer, bytes);
 				}
+				close(output_pipefd[0]);
 
-				close(output_pipefd[1]);
-				
 				waitpid(pid, NULL, 0);
 			}
 			SetStatusLine(version, 200, "OK");
 			return (ResponseFromCGI(output));
 		}
-			// Using 2 pipes because it's standard? More safer than using a single pipe for POST
-			else {
-				std::cout << "not CGI" << std::endl;
-				// create the directory if it doesn't exist
-				std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
-				if (!outFile.is_open())
-				{
-					std::cerr << "File could not be opened\n";
-					// If the file cannot be opened, return an error
-					SetErrorResponse(version, 500, "Internal Server Error", server);
-					return (ResponseToString());
-				}
-		
-				// Write the body to the file
-				outFile.write(body.c_str(), body.size());
-				outFile.close();
-		
-				// If the upload is successful, return a 201 Created response
-				SetStatusLine(version, 201, "Created");
-				SetBody("<h1>201 Created</h1>");
+		else {
+			std::cout << "not CGI POST" << std::endl;
+			// create the directory if it doesn't exist
+			std::ofstream outFile(uploadPath.c_str(), std::ios::out | std::ios::binary);
+			if (!outFile.is_open())
+			{
+				std::cerr << "File could not be opened\n";
+				// If the file cannot be opened, return an error
+				SetErrorResponse(version, 500, "Internal Server Error", server);
 				return (ResponseToString());
+			}
+		
+			// Write the body to the file
+			outFile.write(body.c_str(), body.size());
+			outFile.close();
+		
+			// If the upload is successful, return a 201 Created response
+			SetStatusLine(version, 201, "Created");
+			SetBody("<h1>201 Created</h1>");
+			return (ResponseToString());
 		}
 	}
 	else if (method == "DELETE")
@@ -419,7 +428,6 @@ std::string HTTPResponse::GenerateDirectoryListing(const std::string& directoryP
 	DIR* dir = opendir(directoryPath.c_str());
 	if (!dir)
 		return "<h1>500 Internal Server Error</h1>";
-
 	// Optional: Add parent directory link if not root
 	if (uri != "/") {
 		std::string parent = uri;

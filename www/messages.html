@@ -19,7 +19,7 @@
     <script>
         async function loadMessages() {
             try {
-                const res = await fetch("/messages.txt");
+                const res = await fetch("messages/messages.txt");
                 if (!res.ok) return;
                 const text = await res.text();
                 const messages = text.trim().split("\\n").filter(Boolean);

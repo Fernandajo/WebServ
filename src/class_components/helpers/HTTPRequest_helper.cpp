@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 00:33:19 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 03:24:29 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/09 18:02:40 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,4 +132,106 @@ std::string HTTPRequestHelper::getHeaderLine(const std::string& rawHeaders, int 
 		internalIterator++;
 	}
 	return ("");
+}
+
+std::string HTTPRequestHelper::toLower(const std::string& str)
+{
+	std::string lower = str;
+	for (size_t i = 0; i < lower.size(); ++i)
+	{
+		if (lower[i] >= 'A' && lower[i] <= 'Z')
+			lower[i] += ('a' - 'A');
+	}
+	return (lower);
+}
+
+bool HTTPRequestHelper::parseContentLength(const std::string& contentLengthStr, size_t& contentLength)
+{
+	if (contentLengthStr.empty())
+		return (false);
+	unsigned long long v = 0;
+	for (size_t i = 0; i < contentLengthStr.size(); ++i)
+	{
+		if (!std::isdigit(static_cast<unsigned char>(contentLengthStr[i])))
+			return (false); // Invalid character in Content-Length
+		v = v * 10 + (contentLengthStr[i] - '0');
+		if (v > static_cast<unsigned long long>(std::numeric_limits<size_t>::max()))
+			return (false);
+	}
+	contentLength = static_cast<size_t>(v);
+	return (true);
+}
+
+std::vector<std::string> HTTPRequestHelper::splitHeaderValue(const std::string& headerValue)
+{
+	std::vector<std::string> values;
+	size_t start = 0;
+	size_t end = 0;
+
+	while ((end = headerValue.find(',', start)) != std::string::npos)
+	{
+		std::string value = trim(headerValue.substr(start, end - start));
+		if (!value.empty())
+			values.push_back(value);
+		start = end + 1;
+	}
+
+	std::string value = trim(headerValue.substr(start));
+	if (!value.empty())
+		values.push_back(value);
+
+	return (values);
+}
+
+int HTTPRequestHelper::MapParseToHttp(const HttpRequest& req, ParseStatus st)
+{
+	if (st == Parse_Incomplete) return 0;
+	if (st == Parse_NotImplemented) return 501;
+	if (st == Parse_VersionNotSupported) return 505;
+	if (st == Parse_Success) return 200;
+	
+	const std::string& errorMessage = req.GetErrorMessage();
+
+	if (errorMessage.find("Payload too large") != std::string::npos)
+		return 413;
+	if (errorMessage.find("Request-URI too long") != std::string::npos)
+		return 414;
+	if (errorMessage.find("Request line too large") != std::string::npos)
+		return 414;
+	if (errorMessage.find("Header section too large") != std::string::npos)
+		return 431;
+	if (errorMessage.find("Header line too large") != std::string::npos)
+		return 431;
+	if (errorMessage.find("Too many header fields") != std::string::npos)
+		return 431;
+
+	return 400;
+}
+
+const char* HTTPRequestHelper::ReasonMessage(int errorCode)
+{
+	switch (errorCode)
+	{
+		case 400: return "Bad Request";
+		case 413: return "Payload Too Large";
+		case 414: return "URI Too Long";
+		case 431: return "Request Header Fields Too Large";
+		case 501: return "Not Implemented";
+		case 505: return "HTTP Version Not Supported";
+		default: return "Unknown Error";
+	}
+}
+
+std::string HTTPRequestHelper::MakeErrorResponse(int code, const std::string& httpVersion)
+{
+	const char* reason = HTTPRequestHelper::ReasonMessage(code);
+	std::string body = std::string(reason) + "\n";
+	std::ostringstream oss;
+	oss << httpVersion << " " << code << " " << reason << "\r\n"
+		<< "Content-Type: text/plain\r\n"
+		<< "Content-Length: " << body.size() << "\r\n"
+		<< "Connection: close\r\n"
+		<< "\r\n"
+		<< body;
+	return (oss.str());
 }

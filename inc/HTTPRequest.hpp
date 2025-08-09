@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 23:58:52 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 18:34:45 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/09 18:03:06 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,20 @@
 # define HTTPREQUEST_HPP
 
 #include <string>
+#include <iostream>
 #include <cstdlib>
+#include <sstream>
 #include <algorithm>
 #include <map>
 
 #define RequestEOL "\r\n"
 #define HeaderEOL  "\r\n\r\n"
+
+#define MAX_START_LINE_BYTES      8192
+#define MAX_REQUEST_TARGET_BYTES  8192
+#define MAX_HEADER_SECTION_BYTES  16384
+#define MAX_HEADER_LINE_BYTES     8192
+#define MAX_HEADER_COUNT          200
 
 // Return values for HTTP parsing
 enum ParseStatus
@@ -80,6 +88,8 @@ class HttpRequest
 		std::map<std::string, std::string> headers;
 		std::string body;
 
+		size_t maxBodySize;
+
 		std::string errorMessage;
 		ParseState state;
 		std::string buffer;
@@ -115,6 +125,7 @@ class HttpRequest
 		//member function
 		bool isComplete() const;
 		bool hasError() const;
+		bool hasMoreData() const;
 		ParseStatus ValidateContentLength();
 		
 		ParseStatus ParseRequestLine(const std::string& requestLine);
@@ -124,7 +135,10 @@ class HttpRequest
 		ParseStatus ParseRawRequest(const std::string& raw);
 		ParseStatus ParseRequestChunk(const std::string& chunk);
 
-		std::string generateSimpleResponse() const;
+		ParseStatus ParseChunkedBody(const std::string& chunkedBody);
+
+		void StartNextRequest();
+
 };
 
 #endif

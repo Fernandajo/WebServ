@@ -113,17 +113,40 @@ void MultiServerManager::initialize() {
 				HTTPResponse res;
 				std::string response = res.GenerateResponse(req, *it->second);
 				send(it->first, response.c_str(), response.size(), 0);
-				std::map<std::string, std::string> headers = res.GetHeaders();
-				if (headers.find("Connection") != headers.end() && headers["Connection"] == "close") {
-					std::cout << "Closing connection for client " << it->first << std::endl;
-					closeClientConnection(it->first);
+				while (req.hasMoreData()) {
+				    req.StartNextRequest();                // reuse parser, keep leftover buffer
+    				ParseStatus ps = req.ParseRequestChunk("");  // continue parsing from internal buffer
+    				if (ps == Parse_Success) {
+						std::string response = res.GenerateResponse(req, *it->second);
+        				send(it->first, response.c_str(), response.size(), 0);
+						std::map<std::string, std::string> headers = res.GetHeaders();
+						if (headers.find("Connection") != headers.end() && headers["Connection"] == "close") {
+							std::cout << "Closing connection for client " << it->first << std::endl;
+							closeClientConnection(it->first);
+						}
+    				} else if (ps == Parse_Incomplete) {
+        				break; // need more bytes from socket
+    				} else {   // error
+        			// generate 4xx/5xx from req.GetErrorMessage(); then break/close
+        			break;
+    				}
 				}
 				// maybe close and remove client
 			}
 		}
 	}
-    close(_epoll_fd);
-    // stopServer();
+	CloseEpoll();
+}
+
+void MultiServerManager::CloseEpoll() {
+	std::vector<Server>::iterator it;
+	for (it = _servers.begin(); it != _servers.end(); it++)
+		it->stopServer();
+	// close all server sockets
+	if (_epoll_fd != -1) {
+		close(_epoll_fd);
+		_epoll_fd = -1;
+	}
 }
 
 void MultiServerManager::closeClientConnection(int clientSocket)

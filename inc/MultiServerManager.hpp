@@ -39,6 +39,7 @@ private:
 public:
 	MultiServerManager(std::string& configfile);
 	~MultiServerManager();
+	void CloseEpoll();
     // void handleRequest(int clientSocket);
     // void sendResponse(int clientSocket, const std::string& response);
 };

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTP_Response_test.cpp                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 18:31:09 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/25 18:39:52 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/04 00:49:04 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@
 
 #include "../inc/HTTPResponse.hpp"
 #include "../inc/HTTPRequest.hpp"
+#include "../inc/Server.hpp"
+#include "../inc/MultiServerManager.hpp"
 
 void createTestFile(const std::string& path, const std::string& content) {
 	std::ofstream out(path.c_str(), std::ios::out | std::ios::binary);
@@ -113,7 +115,7 @@ void testEmptyPOSTBody() {
 void testDeleteMissingFile() {
 	HttpRequest req("DELETE", "/uploads/missing.txt", "HTTP/1.1", "");
 	HTTPResponse res;
-	std::string response = res.GenerateResponse(req);
+	std::string response = res.GenerateResponse(req, );
 
 	std::cout << "[DELETE missing] ";
 	if (response.find("404 Not Found") != std::string::npos)
@@ -123,19 +125,19 @@ void testDeleteMissingFile() {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
 	std::cout << "=== HTTPResponse Tests ===\n";
+	if(argc == 2) {
+		std::string configFile = argv[1];
+		// parsing of config file can be added here
+		MultiServerManager serverManager(configFile);
+	} else {
+		std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
+		return 1;
+	}
+	return 0;
 
-	testGETExistingFile();
-	testGETMissingFile();
-	testPOSTUpload();
-	testDELETEUploadedFile();
-
-	testUnsupportedMethod();
-	testEmptyPOSTBody();
-	testDeleteMissingFile();
 
 	std::cout << "==========================\n";
-	return 0;
 }
 

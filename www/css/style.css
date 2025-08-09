@@ -3,14 +3,15 @@ body {
     padding: 0;
     font-family: 'Inter', sans-serif;
     background: linear-gradient(120deg, #1f4037, #99f2c8);
-    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 100vh;
 }
 
-.center-wrapper {
+.background {
     width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,12 +25,20 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border-radius: 20px;
     padding: 40px;
-    max-width: 700px;
+    max-width: 800px;
     width: 100%;
     color: #ffffff;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-    animation: fadeIn 1.2s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     text-align: center;
+    animation: fadeIn 1.2s ease;
+}
+
+.logo {
+    width: 100px;
+    height: auto;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 header h1 {
@@ -74,13 +83,80 @@ section h2 {
     color: #99f2c8;
 }
 
+.test-form {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.test-form input {
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: none;
+    width: 80%;
+    max-width: 400px;
+}
+
+.test-form button {
+    background-color: #99f2c8;
+    font-weight: 600;
+    color: #1f4037;
+    cursor: pointer;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+}
+
+.test-form button:hover {
+    background-color: #7ee3b5;
+}
+
+.gallery-link,
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #99f2c8;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.gallery-link:hover,
+.back-link:hover {
+    color: #c0fff1;
+}
+
+#messageList {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+}
+
+#messageList li {
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1em;
+}
+
 footer {
     margin-top: 40px;
     font-size: 0.9em;
     color: #c7fbe8;
+    text-align: center;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

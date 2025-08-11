@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/08 18:02:56 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/11 15:02:41 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 		if (stat(path.c_str(), &fileStat) == 0 && S_ISDIR(fileStat.st_mode)) {
 			if (path[path.size() - 1] != '/')
 				path += "/";
-			path += route.indexFile.empty() ? "index.html" : route.indexFile;
+			path += route.indexFiles.empty() ? "index.html" : route.indexFiles[0];
 			if (stat(path.c_str(), &fileStat) != 0)
 			{
 				if (route.isAutoIndexOn)
@@ -95,8 +95,8 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			std::string indexedPath = path;
 			if (indexedPath[indexedPath.size() - 1] != '/')
 				indexedPath += '/';
-			indexedPath += route.indexFile.empty() ? "index.html" : route.indexFile;
-			
+			indexedPath += route.indexFiles.empty() ? "index.html" : route.indexFiles[0];
+
 			struct stat indexedStat;
 			if (stat(indexedPath.c_str(), &indexedStat) == 0 && S_ISREG(indexedStat.st_mode))
 			{

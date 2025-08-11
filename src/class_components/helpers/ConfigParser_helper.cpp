@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser_helper.cpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/03 02:14:51 by moojig12         ###   ########.fr       */
+/*   Updated: 2025/08/11 14:59:12 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,19 +14,36 @@
 
 std::string ConfigParser::peek() {
 	if (currentTokenIndex >= tokens.size())
-		throw std::runtime_error("No more tokens available");
+	{
+		std::ostringstream oss;
+		oss << "Unexpected EOF at token index " << currentTokenIndex;
+		throw std::runtime_error(oss.str());
+	}
 	return tokens[currentTokenIndex];
 }
 
 std::string ConfigParser::next() {
 	if (currentTokenIndex >= tokens.size())
-		throw std::runtime_error("No more tokens available");
+	{
+		std::ostringstream oss;
+		oss << "Unexpected EOF at token index " << currentTokenIndex;
+		throw std::runtime_error(oss.str());
+	}
 	return tokens[currentTokenIndex++];
 }
 
-void ConfigParser::expect(const std::string& expected) {
-	if (next() != expected)
-		throw std::runtime_error("Unexpected token: expected '" + expected + "', got '" + peek() + "'");
+void ConfigParser::expect(const std::string& expected)
+{
+	if (currentTokenIndex >= tokens.size())
+	{
+		std::ostringstream oss;
+		oss << "Unexpected EOF at token index " << currentTokenIndex;
+		throw std::runtime_error(oss.str());
+	}
+	const std::string& got = tokens[currentTokenIndex];
+	if (got != expected)
+		throw std::runtime_error("Unexpected token: expected '" + expected + "', got '" + got + "'");
+	++currentTokenIndex;
 }
 
 Server ConfigParser::ParseServerBlock()
@@ -40,7 +57,14 @@ Server ConfigParser::ParseServerBlock()
 		
 		if (token == "listen")
 		{
-			serverConfig.setPort(std::atoi(next().c_str()));
+			const std::string temp = next();
+			char *endPoint = 0;
+			long port = std::strtol(temp.c_str(), &endPoint, 10);
+			if (!endPoint || *endPoint != '\0' || port < 1 || port > 65535)
+			{
+				throw std::runtime_error("Invalid port number: " + temp);
+			}
+			serverConfig.setPort(static_cast<int>(port));
 			expect(";");
 		}
 		else if (token == "root")
@@ -55,19 +79,34 @@ Server ConfigParser::ParseServerBlock()
 		}
 		else if (token == "server_name")
 		{
-			serverConfig.setServerName(next());
+			std::vector<std::string> names;
+			while (peek() != ";")
+			{
+				names.push_back(next());
+			}
 			expect(";");
+			if (names.empty())
+			{
+				throw std::runtime_error("server_name must not be empty");
+			}
+			serverConfig.setServerNames(names);
 		}
 		else if (token == "error_page")
 		{
-			int errorCode = std::atoi(next().c_str());
+			const std::string errorCodeStr = next();
+			char *endPoint = 0;
+			long code = std::strtol(errorCodeStr.c_str(), &endPoint, 10);
+			if (!endPoint || *endPoint != '\0' || code < 100 || code > 599)
+			{
+				throw std::runtime_error("Invalid error code: " + errorCodeStr);
+			}
 			std::string errorPage = next();
-			serverConfig.setErrorPage(errorCode, errorPage);
+			serverConfig.setErrorPage(static_cast<int>(code), errorPage);
 			expect(";");
 		}
 		else if (token == "location")
 		{
-			serverConfig.setRoute(ParseLocationBlock());
+			serverConfig.addRoute(ParseLocationBlock());
 		}
 		else
 		{
@@ -84,6 +123,8 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 	RoutingConfig routingConfig;
 
 	routingConfig.path = next();
+	if (routingConfig.path.empty() || routingConfig.path[0] != '/')
+		throw std::runtime_error("location path must start with '/': " + routingConfig.path);
 	expect("{");
 	
 	while (peek() != "}")
@@ -92,9 +133,16 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 		
 		if (token == "allow_methods")
 		{
+			static const char* methodsArr[] = {"GET", "POST", "DELETE"};
+			static const std::set<std::string> validMethods(methodsArr, methodsArr + 3);
 			while (peek() != ";")
 			{
-				routingConfig.methods.push_back(next());
+				std::string method = next();
+				if (!validMethods.count(method))
+				{
+					throw std::runtime_error("Invalid method in location block: " + method);
+				}
+				routingConfig.methods.push_back(method);
 			}
 			expect(";");
 		}
@@ -115,12 +163,19 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 				routingConfig.isAutoIndexOn = true;
 			else if (state == "off")
 				routingConfig.isAutoIndexOn = false;
+			else
+				throw std::runtime_error("Invalid autoindex state: " + state);
 			expect(";");
 		}
 		else if (token == "index")
 		{
-			routingConfig.indexFile = next();
+			std::vector<std::string> files;
+			while (peek() != ";")
+			{
+				files.push_back(next());
+			}
 			expect(";");
+			routingConfig.indexFiles = files;
 		}
 		else if (token == "cgi_path")
 		{
@@ -130,6 +185,8 @@ RoutingConfig ConfigParser::ParseLocationBlock()
 		else if (token == "cgi_extension")
 		{
 			routingConfig.cgi_ext = next();
+			if (routingConfig.cgi_ext.empty() || routingConfig.cgi_ext[0] != '.')
+				throw std::runtime_error("CGI extension must start with '.': " + routingConfig.cgi_ext);
 			expect(";");
 		}
 		else

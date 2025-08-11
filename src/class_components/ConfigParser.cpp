@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 16:17:09 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:25:07 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/11 14:47:44 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,14 +40,31 @@ void ConfigParser::ReadConfigFile()
 void ConfigParser::TokenizeConfigFile()
 {
 	std::string buffer;
+	bool inComment = false;
 
 	//loop through every character in the raw data stream
 	for (size_t i = 0; i < rawData.length(); ++i)
 	{
 		char dataChar = rawData[i];
 		
+		if (inComment)
+		{
+			if (dataChar == '\n')
+				inComment = false;
+			continue;
+		}
+		if (dataChar == '#')
+		{
+			if (!buffer.empty())
+			{
+				tokens.push_back(buffer);
+				buffer.clear();
+			}
+			inComment = true;
+			continue;
+		}
 		// if space is found and buffer is not empty, add buffer to tokens
-		if(isspace(dataChar))
+		if (std::isspace(static_cast<unsigned char>(dataChar)))
 		{
 			if (!buffer.empty())
 			{
@@ -76,16 +93,15 @@ void ConfigParser::TokenizeConfigFile()
 std::vector<Server> ConfigParser::ParseConfigFile()
 {
 	std::vector<Server> servers;
-	std::vector<std::string> tokens = GetTokens();
 	currentTokenIndex = 0;
-	while (currentTokenIndex < tokens.size())
+	while (currentTokenIndex < this->tokens.size())
 	{
-		if (tokens[currentTokenIndex] == "server")
+		if (this->tokens[currentTokenIndex] == "server")
 		{
 			servers.push_back(ParseServerBlock());
 		}
 		else
-			throw std::runtime_error("Unexpected token: " + tokens[currentTokenIndex]);
+			throw std::runtime_error("Unexpected token: " + this->tokens[currentTokenIndex]);
 	}
 	return (servers);
 }

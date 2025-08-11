@@ -29,7 +29,7 @@ struct RoutingConfig
 {
 	std::string path;
 	std::string root;
-	std::string indexFile;
+	std::vector<std::string> indexFiles;
 	std::string uploadPath;
 	std::string cgi_path;
 	std::string cgi_ext;
@@ -48,7 +48,7 @@ class Server
 	
 		int							_port;
 		std::string					_bindHost;
-		std::string					_serverName;
+		std::vector<std::string>	_serverNames;
 		std::string					_root;
 		std::map<int, std::string>	_errorPages;
 		std::vector<RoutingConfig>	_routes;
@@ -65,7 +65,7 @@ class Server
 		int getFD();
 		int getPort() const;
 		std::string getBindHost() const;
-		std::string getServerName() const;
+		const std::vector<std::string> getServerNames() const;
 		std::string getRoot() const;
 		std::map<int, std::string> getErrorPages() const;
 		std::vector<RoutingConfig> getRoutes() const;
@@ -73,10 +73,10 @@ class Server
 		//setters
 		void setPort(int port);
 		void setBindHost(const std::string& bindHost);
-		void setServerName(const std::string& serverName);
+		void setServerNames(const std::vector<std::string>& serverNames);
 		void setRoot(const std::string& root);
 		void setErrorPage(int errorCode, const std::string& errorPage);
-		void setRoute(const RoutingConfig& route);
+		void addRoute(const RoutingConfig& route);
 	
 		const RoutingConfig& findRouteforURI(const std::string& uri) const;
 };

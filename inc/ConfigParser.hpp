@@ -6,20 +6,22 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 16:03:47 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/07/30 18:27:14 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/11 14:57:22 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SERVERCONFIG_HPP
-# define SERVERCONFIG_HPP
+#ifndef CONFIGPARSER_HPP
+# define CONFIGPARSER_HPP
 
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <cctype>
 
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "Server.hpp"
 

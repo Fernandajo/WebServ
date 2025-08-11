@@ -6,7 +6,7 @@
 /*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/04 00:39:41 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/04 00:44:51 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/11 20:28:34 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 #include <iomanip>
 #include <string>
 
-class HTTPRequestHelper
+class HTTPResponseHelper
 {
 	public:
 		static std::string urlDecode(const std::string& str);

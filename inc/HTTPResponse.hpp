@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:13:22 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/06 19:17:39 by nmandakh         ###   ########.fr       */
+/*   Updated: 2025/08/11 21:15:37 by mdomnik          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,9 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #include <fstream>
+#include <numeric>
+
+#include "helpers/HTTPResponseHelper.hpp"
 #include "HTTPRequest.hpp"
 #include "Server.hpp"
 #include "helpers.hpp"
@@ -28,9 +31,9 @@
 class HTTPResponse
 {
 	private:
-		std::string statusLine;
-		std::map<std::string, std::string> responseHeaders;
-		std::string responseBody;
+		std::string 						statusLine;
+		std::map<std::string, std::string>	responseHeaders;
+		std::string 						responseBody;
 	public:
 		// Default constructor
 		HTTPResponse();

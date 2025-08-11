@@ -71,7 +71,7 @@ void Server::addClientSocket(int clientSocket) {
 int Server::getFD() { return _socketFD; }
 int Server::getPort() const { return _port; }
 std::string Server::getBindHost() const { return _bindHost; }
-std::vector<std::string> Server::getServerNames() const { return _serverNames; }
+const std::vector<std::string> Server::getServerNames() const { return _serverNames; }
 std::string Server::getRoot() const { return _root; }
 std::map<int, std::string> Server::getErrorPages() const { return _errorPages; }
 std::vector<RoutingConfig> Server::getRoutes() const { return _routes; }

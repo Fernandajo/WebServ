@@ -40,11 +40,11 @@ public:
 	MultiServerManager(std::string& configfile);
 	~MultiServerManager();
 	void CloseEpoll();
+	int handleNewClient(int clientSocket, Server* it);
     // void handleRequest(int clientSocket);
     // void sendResponse(int clientSocket, const std::string& response);
 };
 
-void send_response(int client_fd);
 
 
 #endif // MULTI_SERVER_MANAGER_HPP

@@ -30,7 +30,7 @@ MultiServerManager::~MultiServerManager() {
 void MultiServerManager::addServerToEpoll() {
 	for (std::vector<Server>::iterator it = _servers.begin(); it != _servers.end(); it++)
 	{
-		_ev.events = EPOLLIN;
+		_ev.events = EPOLLIN | EPOLLET; // Edge-triggered mode
 		_ev.data.fd = it->getFD();
 		// Set the socket to non-blocking mode
 		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, it->getFD(), &_ev) == -1) {
@@ -47,7 +47,7 @@ void MultiServerManager::addServerToEpoll() {
 void MultiServerManager::initialize() {
     _epoll_fd = epoll_create1(0); // creates a instance of epoll I/O multiplex
     if (_epoll_fd == -1) {
-		//  add function to close servers
+		CloseEpoll(); // function to close servers
         throw std::runtime_error("Failed to create epoll");
     }
 	// add servers to epoll
@@ -55,55 +55,34 @@ void MultiServerManager::initialize() {
     epoll_event events[MAX_CLIENTS]; // will handle the events
     sockaddr addr;
     socklen_t addrlen = sizeof(addr);
-	bool serverAdded = false;
     while (true) {
 		int numEvents = epoll_wait(_epoll_fd, events, MAX_CLIENTS, -1); //waiting for events to happen
         for (int i = 0; i < numEvents; ++i) 
 		{
-			serverAdded = false;
 			for (std::vector<Server>::iterator it = _servers.begin(); it != _servers.end(); it++)
 			{
 				if (events[i].data.fd == it->getFD()) 
 				{
-					serverAdded = true;
 					int clientSocket = accept(it->getFD(), &addr, &addrlen);
-                	if (clientSocket >= 0)
-					{
-						_client_to_server[clientSocket] = &(*it);
-						it->addClientSocket(clientSocket);
-                    	std::cout << "New client connected." << std::endl;
+					while (clientSocket > 0 && errno == EAGAIN){
+						clientSocket = handleNewClient(clientSocket, it);
+						addrlen = sizeof(addr);
+						clientSocket = accept(it->getFD(), &addr, &addrlen);
 					}
-					set_nonblocking(clientSocket);
-					_ev.events = EPOLLIN | EPOLLET;
-					_ev.data.fd = clientSocket;
-					if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, clientSocket, &_ev) == -1) 
-					{
-						std::cerr << "Failed to add client socket to epoll." << std::endl;
-						close(clientSocket);
-					}
+					
+
 				}
             }
-			if (serverAdded == true) {
-				std::cerr << "Server found for the event." << std::endl;
+			std::map<int, Server*>::iterator it = _client_to_server.find(events[i].data.fd);
+			if (it == _client_to_server.end()) {
+				std::cerr << "Client not found in server map." << std::endl;
 				continue;
 			}
-			// std::vector<int>::iterator it;
-			// for (it = _clientSockets.begin(); it != _clientSockets.end(); ++it)
-			// 	{
-			// 		if(events[i].data.fd == *it)
-			// 			break;
-			// 	}
-		std::map<int, Server*>::iterator it = _client_to_server.find(events[i].data.fd);
-		if (it == _client_to_server.end()) {
-			std::cerr << "Client not found in server map." << std::endl;
-			continue;
-		}
-		// Handle the client request
+			// Handle the client request
 			char buffer[1024];
 			int bytesRecv = recv(it->first, buffer, sizeof(buffer) - 1, 0);
 			if (bytesRecv <= 0){
 				closeClientConnection(it->first); // want to pass a ref to function and close and erase.
-				return;
 			}
 			std::string request(buffer, bytesRecv);
 			HttpRequest req;
@@ -138,6 +117,34 @@ void MultiServerManager::initialize() {
 	CloseEpoll();
 }
 
+// This function is called when a new client connects
+// It sets the client socket to non-blocking mode and adds it to the epoll instance
+// It also adds the client socket to the server's client sockets vector
+int MultiServerManager::handleNewClient(int clientSocket, Server* it) {
+	if (clientSocket <= 0)
+	{	
+		std::cerr << "Failed to accept client connection." << std::endl;
+		return -1;
+	}
+	_client_to_server[clientSocket] = &(*it);
+	it->addClientSocket(clientSocket);
+	std::cout << "New client connected." << std::endl;
+	set_nonblocking(clientSocket);
+	_ev.events = EPOLLIN | EPOLLET;
+	_ev.data.fd = clientSocket;
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, clientSocket, &_ev) == -1) 
+	{
+		std::cerr << "Failed to add client socket to epoll." << std::endl;
+		close(clientSocket);
+	}
+}
+
+// Closes the epoll instance and all server sockets
+// This function is called when the server is shutting down
+// It closes all client sockets and the server socket
+// It also closes the epoll instance to free up resources
+// It is important to close the epoll instance to avoid memory leaks
+// and to ensure that all resources are released properly.
 void MultiServerManager::CloseEpoll() {
 	std::vector<Server>::iterator it;
 	for (it = _servers.begin(); it != _servers.end(); it++)
@@ -162,16 +169,4 @@ void set_nonblocking(int fd) {
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-void send_response(int client_fd) {
-    std::string body = "<html><body><h1>Hello, Friends!</h1></body></html>";
-    std::string response =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 48 \r\n"
-        "Connection: keep-alive\r\n"
-        "\r\n" +
-        body;
-
-    send(client_fd, response.c_str(), response.size(), 0);
-}
 

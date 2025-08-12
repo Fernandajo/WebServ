@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/25 16:18:36 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/11 21:16:19 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/08/12 11:59:15 by moojig12         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -217,7 +217,7 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 	else if (method == "POST")
 	{
 		const std::string& requestBody = request.GetBody();
-		
+
 		//CGI POST
 		const std::string& cgiLocation = root + pathPart;
 		if (determineCGI(cgiLocation, route.cgi_ext))
@@ -258,12 +258,12 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 			
 			if (pid == 0)
 			{
-				dup2(inPipe[0], STDIN_FILENO);
 				dup2(outPipe[1], STDOUT_FILENO);
-				close(inPipe[1]);
+				dup2(inPipe[0], STDIN_FILENO);
 				close(outPipe[0]);
-				close(inPipe[0]);
+				close(inPipe[1]);
 				close(outPipe[1]);
+				close(inPipe[0]);
 
 				std::ostringstream oss;
 				oss << requestBody.size();
@@ -288,34 +288,45 @@ std::string HTTPResponse::GenerateResponse(const HttpRequest& request, Server& s
 					const_cast<char *>(contentLengthEnv.c_str()),
 					NULL
 				};
+				std::cerr << "Executing CGI: " << route.cgi_path << std::endl;
 				execve(route.cgi_path.c_str(), argv, envp);
 				exit(127);
 			}
-
-			//parent
-			close(inPipe[0]);
-			close(inPipe[1]);
-
-			ssize_t off = 0;
-			while (off < (ssize_t)requestBody.size())
+			else
 			{
-				ssize_t bytesWritten = write(inPipe[1], requestBody.data() + off, requestBody.size() - off);
-				if (bytesWritten <= 0)
-					break;
-				off += bytesWritten;
+				//parent
+				close(inPipe[0]);
+	
+				ssize_t off = 0;
+				while (off < (ssize_t)requestBody.size())
+				{
+					ssize_t bytesWritten = write(inPipe[1], requestBody.data() + off, requestBody.size() - off);
+					if (bytesWritten <= 0)
+						break;
+					off += bytesWritten;
+				}
+				close(inPipe[1]);
+	
+				std::string output;
+				char buffer[4096];
+				ssize_t bytesRead;
+				while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
+				{
+					// std::cout << "Reading CGI output..." << std::endl;
+					output.append(buffer, bytesRead);
+					// std::cout << "Read " << bytesRead << " bytes from CGI output." << std::endl;
+					// std::cout << output << std::endl;
+					if (output.size() > 0)
+						break ;
+				}
+				// std::cout << "CGI output read complete." << std::endl;
+				close(outPipe[0]);
+				waitpid(pid, NULL, 0);
+				// std::cout << "Waiting on CGI process: " << pid << std::endl;
+	
+				SetStatusLine(version, 200, "OK");
+				return (ResponseFromCGI(output));
 			}
-			close(inPipe[1]);
-
-			std::string output;
-			char buffer[4096];
-			ssize_t bytesRead;
-			while ((bytesRead = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-				output.append(buffer, bytesRead);
-			close(outPipe[0]);
-			waitpid(pid, NULL, 0);
-
-			SetStatusLine(version, 200, "OK");
-			return (ResponseFromCGI(output));
 		}
 
 		// Regular POST handling

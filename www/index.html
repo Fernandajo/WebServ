@@ -26,7 +26,7 @@
 
                 <section>
                     <h2>💬 Leave a Message</h2>
-                    <form method="POST" action="/messages.txt" class="test-form">
+                    <form method="POST" action="/messages.html" class="test-form">
                         <input type="text" name="message" placeholder="Your message..." required />
                         <button type="submit">Post Message</button>
                     </form>
@@ -37,7 +37,13 @@
                 </section>
 
 				<section>
-					<a href="/cgi-bin/test.py" button>CGI BUTTON</button>
+					<h2>
+						<a href="/cgi-bin/test.py" button>Get cgi</a>
+					</h2>
+					<form method="POST" action="/cgi-bin/test.py" class="test-form">
+						<input type="test" name="cgi post" placeholder="Body..." required />
+						<button type="submit">Send to Script</button>
+					</form>
 				</section>
             </main>
             <footer>

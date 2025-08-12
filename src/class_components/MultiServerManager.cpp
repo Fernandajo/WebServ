@@ -55,79 +55,101 @@ void MultiServerManager::initialize() {
     epoll_event events[MAX_CLIENTS]; // will handle the events
     sockaddr addr;
     socklen_t addrlen = sizeof(addr);
-    while (true) {
-		int numEvents = epoll_wait(_epoll_fd, events, MAX_CLIENTS, -1); //waiting for events to happen
-        for (int i = 0; i < numEvents; ++i) 
-		{
-			for (std::vector<Server>::iterator it = _servers.begin(); it != _servers.end(); it++)
-			{
-				if (events[i].data.fd == it->getFD()) 
-				{
-					int clientSocket = accept(it->getFD(), &addr, &addrlen);
-					while (clientSocket > 0 && errno == EAGAIN){
-						clientSocket = handleNewClient(clientSocket, it);
-						addrlen = sizeof(addr);
-						clientSocket = accept(it->getFD(), &addr, &addrlen);
-					}
-					
-
-				}
+     while (true) {
+        int numEvents = epoll_wait(_epoll_fd, events, MAX_CLIENTS, -1);
+        
+        for (int i = 0; i < numEvents; ++i) {
+            // Check if this is a server socket (new connection)
+            bool isServerSocket = false;
+            for (std::vector<Server>::iterator it = _servers.begin(); it != _servers.end(); it++) {
+                if (events[i].data.fd == it->getFD()) {
+                    isServerSocket = true;
+                    std::cout << "DEBUG: New connection on server socket " << it->getFD() << std::endl;
+                    
+                    // Accept new connections in a loop (edge-triggered epoll)
+                    while (true) {
+                        addrlen = sizeof(addr);
+                        int clientSocket = accept(it->getFD(), &addr, &addrlen);
+                        
+                        if (clientSocket > 0) {
+                            std::cout << "DEBUG: Accepted client socket " << clientSocket << std::endl;
+                            handleNewClient(clientSocket, *it);
+                        } else {
+                            // No more connections to accept
+                            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                                std::cout << "DEBUG: No more connections to accept" << std::endl;
+                                break;
+                            } else {
+                                std::cerr << "Accept failed: " << strerror(errno) << std::endl;
+                                break;
+                            }
+                        }
+                    }
+                    break; // Found the server, no need to continue the loop
+                }
             }
-			std::map<int, Server*>::iterator it = _client_to_server.find(events[i].data.fd);
-			if (it == _client_to_server.end()) {
-				std::cerr << "Client not found in server map." << std::endl;
-				continue;
-			}
-			// Handle the client request
-			char buffer[1024];
-			int bytesRecv = recv(it->first, buffer, sizeof(buffer) - 1, 0);
-			if (bytesRecv <= 0){
-				closeClientConnection(it->first); // want to pass a ref to function and close and erase.
-			}
-			std::string request(buffer, bytesRecv);
-			HttpRequest req;
-			ParseStatus status = req.ParseRequestChunk(request);
-			if (status == Parse_Success)
-			{
-				HTTPResponse res;
-				std::string response = res.GenerateResponse(req, *it->second);
-				send(it->first, response.c_str(), response.size(), 0);
-				while (req.hasMoreData()) {
-				    req.StartNextRequest();                // reuse parser, keep leftover buffer
-    				ParseStatus ps = req.ParseRequestChunk("");  // continue parsing from internal buffer
-    				if (ps == Parse_Success) {
-						std::string response = res.GenerateResponse(req, *it->second);
-        				send(it->first, response.c_str(), response.size(), 0);
-						std::map<std::string, std::string> headers = res.GetHeaders();
-						if (headers.find("Connection") != headers.end() && headers["Connection"] == "close") {
-							std::cout << "Closing connection for client " << it->first << std::endl;
-							closeClientConnection(it->first);
-						}
-    				} else if (ps == Parse_Incomplete) {
-        				break; // need more bytes from socket
-    				} else {   // error
-        			// generate 4xx/5xx from req.GetErrorMessage(); then break/close
-        			break;
-    				}
-				}
-				// maybe close and remove client
-			}
-		}
-	}
-	CloseEpoll();
+            
+            // If it's not a server socket, it's a client socket with data
+            if (!isServerSocket) {
+                std::map<int, Server*>::iterator it = _client_to_server.find(events[i].data.fd);
+                if (it == _client_to_server.end()) {
+                    std::cerr << "Client not found in server map." << std::endl;
+                    continue;
+                }
+                
+                // Handle the client request
+                char buffer[1024];
+                int bytesRecv = recv(it->first, buffer, sizeof(buffer) - 1, 0);
+                if (bytesRecv <= 0) {
+                    closeClientConnection(it->first);
+                    continue;
+                }
+                
+                buffer[bytesRecv] = '\0'; // Null terminate
+                std::string request(buffer, bytesRecv);
+                HttpRequest req;
+                ParseStatus status = req.ParseRequestChunk(request);
+                
+                if (status == Parse_Success) {
+                    HTTPResponse res;
+                    std::string response = res.GenerateResponse(req, *it->second);
+                    send(it->first, response.c_str(), response.size(), 0);
+                    
+                    while (req.hasMoreData()) {
+                        req.StartNextRequest();
+                        ParseStatus ps = req.ParseRequestChunk("");
+                        if (ps == Parse_Success) {
+                            std::string response = res.GenerateResponse(req, *it->second);
+                            send(it->first, response.c_str(), response.size(), 0);
+                            std::map<std::string, std::string> headers = res.GetHeaders();
+                            if (headers.find("Connection") != headers.end() && headers["Connection"] == "close") {
+                                std::cout << "Closing connection for client " << it->first << std::endl;
+                                closeClientConnection(it->first);
+                            }
+                        } else if (ps == Parse_Incomplete) {
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    CloseEpoll();
 }
 
 // This function is called when a new client connects
 // It sets the client socket to non-blocking mode and adds it to the epoll instance
 // It also adds the client socket to the server's client sockets vector
-int MultiServerManager::handleNewClient(int clientSocket, Server* it) {
+int MultiServerManager::handleNewClient(int clientSocket, Server& it) {
 	if (clientSocket <= 0)
 	{	
 		std::cerr << "Failed to accept client connection." << std::endl;
 		return -1;
 	}
-	_client_to_server[clientSocket] = &(*it);
-	it->addClientSocket(clientSocket);
+	_client_to_server[clientSocket] = &it;
+	it.addClientSocket(clientSocket);
 	std::cout << "New client connected." << std::endl;
 	set_nonblocking(clientSocket);
 	_ev.events = EPOLLIN | EPOLLET;
@@ -136,7 +158,9 @@ int MultiServerManager::handleNewClient(int clientSocket, Server* it) {
 	{
 		std::cerr << "Failed to add client socket to epoll." << std::endl;
 		close(clientSocket);
+		return -1;
 	}
+	return clientSocket;
 }
 
 // Closes the epoll instance and all server sockets

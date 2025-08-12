@@ -24,7 +24,7 @@
 #include "helpers.hpp"
 
 
-#define MAX_CLIENTS 10 // Maximum number of clients 
+#define MAX_CLIENTS 64 // Maximum number of clients 
 
 class MultiServerManager {
 private:
@@ -40,7 +40,7 @@ public:
 	MultiServerManager(std::string& configfile);
 	~MultiServerManager();
 	void CloseEpoll();
-	int handleNewClient(int clientSocket, Server* it);
+	int handleNewClient(int clientSocket, Server& it);
     // void handleRequest(int clientSocket);
     // void sendResponse(int clientSocket, const std::string& response);
 };

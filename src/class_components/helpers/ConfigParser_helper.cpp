@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser_helper.cpp                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 19:23:43 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/11 14:59:12 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/09/18 15:31:47 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 

@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: moojig12 <moojig12@student.42.fr>          +#+  +:+       +#+         #
+#    By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/29 23:32:19 by mdomnik           #+#    #+#              #
-#    Updated: 2025/08/05 12:40:15 by moojig12         ###   ########.fr        #
+#    Updated: 2025/09/17 19:01:07 by nmandakh         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -25,7 +25,7 @@ CAT_EMOJI  = 🐈
 
 # === Compiler and Flags ===
 CXX      = c++
-CXXFLAGS = -g -Wall -Wextra -Werror -std=c++98 -fsanitize=address
+CXXFLAGS = -g -Wall -Wextra -Werror -std=c++98 
 
 # === Directories ===
 SRC_DIR            := src

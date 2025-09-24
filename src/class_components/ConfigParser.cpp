@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mdomnik <mdomnik@student.42berlin.de>      +#+  +:+       +#+        */
+/*   By: nmandakh <nmandakh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/26 16:17:09 by mdomnik           #+#    #+#             */
-/*   Updated: 2025/08/11 14:47:44 by mdomnik          ###   ########.fr       */
+/*   Updated: 2025/09/24 10:47:39 by nmandakh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,6 @@ void ConfigParser::ReadConfigFile()
 	std::ifstream file(fileName.c_str());
 	if (!file.is_open())
 		throw (std::runtime_error("Failed to open config file"));
-	
 	std::ostringstream data;
 	data << file.rdbuf();
 	file.close();

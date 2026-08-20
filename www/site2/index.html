@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MySocial</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>📱 MySocial</h1>
+      <p>Post something to the feed!</p>
+    </header>
+
+    <form method="POST" action="/feed" class="post-form">
+      <textarea name="post" placeholder="What's on your mind?" required></textarea>
+      <button type="submit">Post</button>
+    </form>
+
+    <section class="feed" id="feed">
+      <!-- Posts will be loaded here -->
+    </section>
+  </div>
+
+  <script>
+    async function loadFeed() {
+      const res = await fetch("/feed.txt");
+      if (!res.ok) return;
+      const text = await res.text();
+      const posts = text.trim().split("\\n").reverse();
+      const container = document.getElementById("feed");
+      posts.forEach(post => {
+        const div = document.createElement("div");
+        div.className = "post";
+        div.textContent = post;
+        container.appendChild(div);
+      });
+    }
+
+    loadFeed();
+  </script>
+</body>
+</html>
